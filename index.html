@@ -79,6 +79,7 @@ body.pp .poster .purl{font-size:.9rem;margin-top:8px;word-break:break-all}}
   <div class="lbl">Event type</div>
   <div class="choices" id="tplBtns"></div>
   <label id="enameWrap" class="hide">Event name<input id="ename" placeholder="e.g. Celebration Service"></label>
+  <label id="epageWrap" class="hide">Separate page for this event (optional)<input id="epage" placeholder="e.g. special-event.html or https://..."></label>
   <div class="row">
     <label>Date<input id="edate" type="date"></label>
     <label>Time<input id="etime" type="time"></label>
@@ -124,6 +125,9 @@ body.pp .poster .purl{font-size:.9rem;margin-top:8px;word-break:break-all}}
   <section class="panel hide noprint" id="linkPanel">
     <h2>Check-in link and QR code</h2>
     <div class="msg" id="linkState"></div>
+    <label style="margin:0 0 10px">Separate page for this event (optional)
+      <span class="row" style="flex-wrap:nowrap"><input id="pageEdit" placeholder="e.g. special-event.html" style="flex:1"><button id="pageSave">Save page</button></span>
+    </label>
     <div class="row"><input id="linkUrl" readonly style="flex:1;min-width:200px"><button id="copyLink">Copy link</button></div>
     <div id="qrBox" style="margin-top:14px">
       <canvas id="qr" width="220" height="220" role="img" aria-label="QR code for the check-in link"></canvas>
@@ -250,7 +254,7 @@ TEMPLATES.forEach(t=>{const b=document.createElement('button');b.textContent=t;b
 $('tplBtns').onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
   tpl=b.dataset.v;pick($('tplBtns'),b);
-  $('enameWrap').classList.remove('hide');$('start').classList.remove('hide');$('plan').classList.remove('hide');
+  $('enameWrap').classList.remove('hide');$('epageWrap').classList.remove('hide');$('start').classList.remove('hide');$('plan').classList.remove('hide');
   $('ename').value=tpl==='Other'?'':tpl;$('ename').focus();
   if(tpl!=='Other')$('ename').setSelectionRange(tpl.length,tpl.length);
 };
@@ -260,14 +264,25 @@ $('typeBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;type=b
 $('demoBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;demo=b.dataset.v;pick($('demoBtns'),b)};
 function err(m){$('err').textContent=m}
 
+function cleanPage(v){
+  v=(v||'').trim();
+  if(!v)return '';
+  if(/^https:\/\/[^\s]+$/i.test(v))return v;
+  v=v.replace(/^\.?\//,'');
+  if(/^[\w\-.%]+(\/[\w\-.%]+)*$/.test(v)&&!v.includes('..'))return v;
+  alert('Page link must be a file name like special-event.html, or a full web address starting with https://');
+  return null;
+}
 function createEvent(openNow){
   const name=$('ename').value.trim();
   if(!name){$('ename').focus();return}
+  const page=cleanPage($('epage').value);
+  if(page===null){$('epage').focus();return}
   const kind=tpl,date=$('edate').value,time=$('etime').value;
   const ref=db.collection('events').doc();
-  curId=ref.id;tpl='';pick($('tplBtns'),null);$('enameWrap').classList.add('hide');$('start').classList.add('hide');$('plan').classList.add('hide');$('ename').value='';
+  curId=ref.id;tpl='';pick($('tplBtns'),null);$('enameWrap').classList.add('hide');$('epageWrap').classList.add('hide');$('start').classList.add('hide');$('plan').classList.add('hide');$('ename').value='';$('epage').value='';
   const b=db.batch();
-  b.set(ref,{kind,name,date,time,done:false,open:openNow,people:[],created:Date.now()});
+  b.set(ref,{kind,name,date,time,page,done:false,open:openNow,people:[],created:Date.now()});
   b.set(db.collection('pub').doc(ref.id),{name,date,time,state:openNow?'open':'planned'});
   guard(b.commit());
 }
@@ -307,7 +322,8 @@ function drawQR(c,url){
   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,size,size);x.fillStyle='#000';
   for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect((k+m)*z,(r+m)*z,z,z);
 }
-const linkOf=ev=>new URL('checkin.html?e='+ev.id,location.href).href;
+const linkOf=ev=>{const u=new URL(ev.page||'checkin.html',location.href);u.searchParams.set('e',ev.id);return u.href};
+$('pageSave').onclick=()=>{const ev=E();if(!ev)return;const p=cleanPage($('pageEdit').value);if(p===null)return;guard(db.collection('events').doc(ev.id).update({page:p}))};
 $('qrDl').onclick=()=>{const ev=E();$('qr').toBlob(b=>dl(b,'checkin-qr-'+(ev?ev.name.replace(/[^\w\-]+/g,'_'):'event')+'.png'))};
 $('printQr').onclick=()=>{
   const ev=E();if(!ev)return;
@@ -367,6 +383,7 @@ function render(){
   $('openCheckin').classList.toggle('hide',st!=='planned');
   $('closeCheckin').classList.toggle('hide',st!=='open');
   $('linkUrl').value=link;
+  if(document.activeElement!==$('pageEdit'))$('pageEdit').value=ev.page||'';
   drawQR($('qr'),link);
   $('back').classList.toggle('hide',!admin&&EVENTS.filter(x=>!x.done).length<=1);
   if(!admin){
