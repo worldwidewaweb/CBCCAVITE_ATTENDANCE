@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Special event check-in</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f3f5f1;--surface:#fff;--ink:#1d2a26;--muted:#66736e;--line:#d5dcd6;--green:#1f7a55;--greenbg:#dff1e8;--amber:#9a6a0a;--red:#b3402f;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#141a18;--surface:#1d2623;--ink:#e6ede9;--muted:#93a29b;--line:#2f3b37;--green:#5cc79b;--greenbg:#1d3a2e;--amber:#e6bd62;--red:#ee8b7a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Source Sans 3","Segoe UI",system-ui,sans-serif}
+main{max-width:520px;margin:0 auto;padding:24px 16px 64px}
+h1{font:700 1.7rem/1.2 "Source Serif 4",Georgia,serif;margin:0 0 4px}
+.when{color:var(--muted);margin:0 0 18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+label{display:flex;flex-direction:column;font-size:.9rem;color:var(--muted);gap:4px;margin-bottom:14px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;width:100%}
+.lbl{font-size:.9rem;color:var(--muted);margin:4px 0}
+.choices{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.choices button{flex:1;min-width:100px;padding:14px 8px;font-weight:600}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px 16px}
+button.on{background:var(--green);border-color:var(--green);color:#fff}
+button.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700;width:100%;padding:15px}
+@media (prefers-color-scheme:dark){button.on,button.primary{color:#0e1a15}}
+button:disabled{opacity:.6;cursor:default}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.hide{display:none!important}
+.err{color:var(--red);min-height:1.4em;margin-bottom:8px}
+.ok{background:var(--greenbg);color:var(--green);border-radius:12px;padding:18px;font-weight:600;margin-bottom:16px}
+.msg{color:var(--muted)}
+.hero{background:linear-gradient(135deg,var(--accent),#0f3d2c);color:#fff;border-radius:18px;padding:30px 20px;margin-bottom:18px;text-align:center}
+.hero h1{color:#fff;font-size:2.1rem;margin:6px 0}
+.hero .tagline{text-transform:uppercase;letter-spacing:.12em;font-size:.85rem;opacity:.9}
+.hero .when{color:rgba(255,255,255,.9);margin:0;font-size:1.05rem}
+.hero .venue{color:rgba(255,255,255,.9);margin:6px 0 0}
+</style>
+</head>
+<body>
+<main>
+<header class="hero">
+  <div class="tagline" id="tagline"></div>
+  <h1 id="title">Check in</h1>
+  <p class="when" id="when"></p>
+  <p class="venue" id="venue"></p>
+</header>
+
+<div id="closed" class="panel hide"><b id="closedMsg"></b><p class="msg">Please ask the person in charge if you need help.</p></div>
+<div id="loading" class="panel msg">Loading…</div>
+
+<div id="thanks" class="hide">
+  <div class="ok" id="thanksMsg"></div>
+  <button class="primary" id="another">Check in another person</button>
+</div>
+
+<section class="panel hide" id="form">
+  <label>Name<input id="name" autocomplete="off" placeholder="Full name"></label>
+  <div class="lbl">Member or Visitor?</div>
+  <div class="choices" id="typeBtns">
+    <button data-v="Member">Member</button><button data-v="Visitor">Visitor</button><button data-v="Regular Visitor">Regular Visitor</button>
+  </div>
+  <label id="invWrap" class="hide">Invited by (required)<input id="inv" autocomplete="off" placeholder="Who invited you?"></label>
+  <div class="lbl">Age group</div>
+  <div class="choices" id="demoBtns">
+    <button data-v="Adult">Adult</button><button data-v="Youth">Youth</button><button data-v="Kids">Kids</button>
+  </div>
+  <div class="err" id="err"></div>
+  <button class="primary" id="submit">Check in</button>
+</section>
+</main>
+
+<script>
+// ---- Edit these three lines to change how this page looks ----
+const TAGLINE="You are invited!";
+const VENUE="";            // e.g. "CBC Cavite Main Sanctuary"
+const ACCENT="#1f7a55";    // main color (buttons and banner)
+// --------------------------------------------------------------
+document.documentElement.style.setProperty('--accent',ACCENT);
+document.documentElement.style.setProperty('--green',ACCENT);
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('tagline').textContent=TAGLINE;document.getElementById('venue').textContent=VENUE});
+const firebaseConfig = {
+  apiKey: "AIzaSyAD_H5blVroRJP0-_K81A7TrPCoQnJ1t54",
+  authDomain: "cbcfcavite-event-attendance.firebaseapp.com",
+  projectId: "cbcfcavite-event-attendance",
+  storageBucket: "cbcfcavite-event-attendance.firebasestorage.app",
+  messagingSenderId: "10719951786",
+  appId: "1:10719951786:web:cce48f77701a8c86cb49d3"
+};
+const $=id=>document.getElementById(id);
+let db,OPEN=null,type='',demo='',busy=false;
+const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function fmtTime(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return(h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')}
+function pick(g,b){[...g.children].forEach(x=>x.classList.toggle('on',x===b))}
+const eid=new URLSearchParams(location.search).get('e')||'';
+function closedWith(msg){$('closedMsg').textContent=msg;$('closed').classList.remove('hide');$('form').classList.add('hide');$('thanks').classList.add('hide')}
+function show(){
+  $('loading').classList.add('hide');
+  if(!OPEN){$('title').textContent='Check in';$('when').textContent='';return closedWith(eid?"This check-in link isn't valid.":'Please scan the QR code for your event.')}
+  $('title').textContent=OPEN.name;
+  $('when').textContent=[OPEN.date,fmtTime(OPEN.time)].filter(Boolean).join(' at ');
+  if(OPEN.state==='open'){
+    $('closed').classList.add('hide');
+    if($('thanks').classList.contains('hide'))$('form').classList.remove('hide');
+    return;
+  }
+  closedWith(OPEN.state==='closed'?'Check-in for this event has closed.':'Check-in is not open yet. Please come back when the event starts.');
+}
+try{
+  firebase.initializeApp(firebaseConfig);db=firebase.firestore();
+  if(/^[A-Za-z0-9]{10,40}$/.test(eid))db.collection('pub').doc(eid).onSnapshot(d=>{OPEN=d.exists?d.data():null;show()},()=>{$('loading').textContent='Could not load. Check your internet connection and reload.'});
+  else show();
+}catch(e){$('loading').textContent='Could not load. Check your internet connection and reload.'}
+
+$('typeBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;type=b.dataset.v;pick($('typeBtns'),b);$('invWrap').classList.toggle('hide',type==='Member');if(type==='Member')$('inv').value=''};
+$('demoBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;demo=b.dataset.v;pick($('demoBtns'),b)};
+$('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('submit').click()});
+
+$('submit').onclick=async()=>{
+  if(busy||!OPEN||OPEN.state!=='open')return;
+  const n=$('name').value.trim().slice(0,80);
+  if(!n)return err('Please enter your name.');
+  if(!type)return err('Please choose Member, Visitor, or Regular Visitor.');
+  if(!demo)return err('Please choose Adult, Youth, or Kids.');
+  const inv=$('inv').value.trim().slice(0,80);
+  if(type!=='Member'&&!inv){$('inv').focus();return err('Please write who invited you.');}
+  err('');busy=true;$('submit').disabled=true;$('submit').textContent='Saving…';
+  const p={id:uid(),name:n,type,inv:type==='Member'?'':inv,demo,t:Date.now()};
+  const ref=db.collection('events').doc(eid),add=()=>ref.update({people:firebase.firestore.FieldValue.arrayUnion(p)});
+  try{
+    try{await add()}catch(e){await new Promise(r=>setTimeout(r,600));await add()}
+    $('thanksMsg').textContent='Thank you, '+n+'! You are checked in.';
+    $('form').classList.add('hide');$('thanks').classList.remove('hide');
+  }catch(e){
+    err('Could not check you in. The event may have just closed, or your connection dropped. Please try again.');
+  }
+  busy=false;$('submit').disabled=false;$('submit').textContent='Check in';
+};
+$('another').onclick=()=>{
+  $('name').value='';$('inv').value='';type='';demo='';pick($('typeBtns'),null);pick($('demoBtns'),null);$('invWrap').classList.add('hide');
+  $('thanks').classList.add('hide');show();$('name').focus();
+};
+function err(m){$('err').textContent=m}
+</script>
+</body>
+</html>
