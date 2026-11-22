@@ -52,7 +52,7 @@ button:disabled{opacity:.6;cursor:default}
   <div class="choices" id="typeBtns">
     <button data-v="Member">Member</button><button data-v="Visitor">Visitor</button><button data-v="Regular Visitor">Regular Visitor</button>
   </div>
-  <label id="invWrap" class="hide">Invited by<input id="inv" autocomplete="off" placeholder="Who invited you?"></label>
+  <label id="invWrap" class="hide">Invited by (required)<input id="inv" autocomplete="off" placeholder="Who invited you?"></label>
   <div class="lbl">Age group</div>
   <div class="choices" id="demoBtns">
     <button data-v="Adult">Adult</button><button data-v="Youth">Youth</button><button data-v="Kids">Kids</button>
@@ -100,8 +100,10 @@ $('submit').onclick=async()=>{
   if(!n)return err('Please enter your name.');
   if(!type)return err('Please choose Member, Visitor, or Regular Visitor.');
   if(!demo)return err('Please choose Adult, Youth, or Kids.');
+  const inv=$('inv').value.trim().slice(0,80);
+  if(type!=='Member'&&!inv){$('inv').focus();return err('Please write who invited you.');}
   err('');busy=true;$('submit').disabled=true;$('submit').textContent='Saving…';
-  const p={id:uid(),name:n,type,inv:type==='Member'?'':$('inv').value.trim().slice(0,80),demo,t:Date.now()};
+  const p={id:uid(),name:n,type,inv:type==='Member'?'':inv,demo,t:Date.now()};
   const ref=db.collection('events').doc(OPEN.eventId),add=()=>ref.update({people:firebase.firestore.FieldValue.arrayUnion(p)});
   try{
     try{await add()}catch(e){await new Promise(r=>setTimeout(r,600));await add()}
