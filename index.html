@@ -76,10 +76,15 @@ tfoot td{font-weight:700;border-top:2px solid var(--line)}
   <button class="primary hide" id="start">Start check-in</button>
 </section>
 
+<section class="panel hide" id="norole">
+  <h2>No access yet</h2>
+  <p class="msg">This sign-in page is for admins only. Attendees do not need to sign in: they use the check-in link the admin shares. If you are an admin, ask to have your email added, then sign out and sign in again.</p>
+</section>
+
 <section class="panel hide" id="savedPanel">
-  <h2>Saved events</h2>
+  <h2 id="savedTitle">Saved events</h2>
   <div id="savedList"></div>
-  <div class="row" style="margin-top:12px">
+  <div class="row" id="adminTools" style="margin-top:12px">
     <button id="allXlsx">Download all (Excel)</button>
     <button id="backup">Backup file</button>
     <button id="restoreBtn">Restore backup</button>
@@ -106,7 +111,21 @@ tfoot td{font-weight:700;border-top:2px solid var(--line)}
     </div>
   </section>
 
-  <section class="panel">
+  <section class="panel hide noprint" id="linkPanel">
+    <h2>Check-in link for attendees</h2>
+    <div class="msg" id="linkState"></div>
+    <div class="row"><input id="linkUrl" readonly style="flex:1;min-width:200px"><button id="copyLink">Copy link</button></div>
+    <div style="margin-top:10px"><button class="primary hide" id="openCheckin">Open check-in for this event</button></div>
+  </section>
+
+  <section class="panel hide" id="fillPanel">
+    <h2>Checked in so far</h2>
+    <div class="big" id="fillCount" style="font:700 2rem/1 Georgia,serif"></div>
+    <div class="msg" id="fillRecent"></div>
+    <div class="msg">Made a mistake? Tell the admin, who can fix it.</div>
+  </section>
+
+  <section class="panel" id="overview">
     <h2>Overview</h2>
     <div class="scroll"><table>
       <thead><tr><th>Name</th><th>Type</th><th>Invited by</th><th>Age group</th><th class="noprint"></th></tr></thead>
@@ -120,7 +139,7 @@ tfoot td{font-weight:700;border-top:2px solid var(--line)}
     </table></div>
   </section>
 
-  <section class="panel noprint">
+  <section class="panel noprint" id="finishPanel">
     <div id="finishBox"><button class="primary" id="done">Event done</button></div>
     <div id="doneBox" class="hide">
       <h2>Event finished</h2>
@@ -150,7 +169,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Other'];  // add or rename event types here
-let tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let PUB=null,unsubPub=null,role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -169,19 +188,32 @@ $('signin').onclick=async()=>{
   if(!auth)return;
   $('lerr').textContent='';
   try{await auth.signInWithEmailAndPassword($('email').value.trim(),$('pass').value)}
-  catch(e){$('lerr').textContent=(e.code==='auth/network-request-failed')?'No internet connection.':'Wrong email or password.'}
+  catch(e){
+    const m={'auth/invalid-credential':'Wrong email or password, or this user was not added in Firebase.','auth/wrong-password':'Wrong password.','auth/user-not-found':'No user with this email. Add it in Firebase: Authentication > Users.','auth/invalid-email':'That email address is not valid.',
+      'auth/operation-not-allowed':'Email/Password sign-in is not turned on in Firebase: Authentication > Sign-in method.','auth/unauthorized-domain':'This website is not allowed yet: add it in Firebase under Authentication > Settings > Authorized domains.',
+      'auth/network-request-failed':'No internet connection.','auth/too-many-requests':'Too many attempts. Wait a few minutes and try again.','auth/invalid-api-key':'The Firebase API key in the app is not valid.','auth/api-key-not-valid.-please-pass-a-valid-api-key.':'The Firebase API key in the app is not valid.'};
+    $('lerr').textContent=m[e.code]||('Sign-in failed ('+(e.code||e.message)+').');
+  }
 };
 $('pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('signin').click()});
 $('signout').onclick=()=>auth.signOut();
 if(auth)auth.onAuthStateChanged(u=>{
   $('login').classList.toggle('hide',!!u);$('app').classList.toggle('hide',!u);
   if(unsub){unsub();unsub=null}
-  if(!u){EVENTS=[];curId=null;return}
+  if(unsubPub){unsubPub();unsubPub=null}
+  if(!u){EVENTS=[];curId=null;role='';PUB=null;return}
   $('who').textContent='Signed in as '+u.email;$('pass').value='';
-  unsub=db.collection('events').orderBy('created').onSnapshot(
-    snap=>{EVENTS=snap.docs.map(d=>({id:d.id,...d.data()}));render()},
-    e=>alert('Could not load events: '+e.message)
-  );
+  db.collection('users').doc((u.email||'').toLowerCase()).get().then(d=>{
+    const r=d.exists?d.data().role:'';
+    role=(r==='admin')?'admin':'';
+    $('who').textContent='Signed in as '+u.email+(role?' ('+'Admin'+')':'');
+    if(!role){render();return}
+    unsubPub=db.doc('public/open').onSnapshot(d=>{PUB=d.exists?d.data():null;render()},()=>{});
+    unsub=db.collection('events').orderBy('created').onSnapshot(
+      snap=>{EVENTS=snap.docs.map(d=>({id:d.id,...d.data()}));render()},
+      e=>alert('Could not load events: '+e.message)
+    );
+  }).catch(()=>{role='';render()});
 });
 const guard=p=>p.catch(e=>alert('Could not save: '+e.message));
 
@@ -205,7 +237,10 @@ $('start').onclick=()=>{
   if(!name){$('ename').focus();return}
   const ref=db.collection('events').doc();
   curId=ref.id;tpl='';pick($('tplBtns'),null);$('enameWrap').classList.add('hide');$('start').classList.add('hide');$('ename').value='';
-  guard(ref.set({kind:tpl,name,date:$('edate').value,time:$('etime').value,done:false,people:[],created:Date.now()}));
+  const b=db.batch(),date=$('edate').value,time=$('etime').value;
+  b.set(ref,{kind:tpl,name,date,time,done:false,people:[],created:Date.now()});
+  b.set(db.doc('public/open'),{eventId:ref.id,name,date,time,open:true});
+  guard(b.commit());
 };
 $('add').onclick=()=>{
   const ev=E();if(!ev)return;
@@ -220,8 +255,13 @@ $('add').onclick=()=>{
   pick($('typeBtns'),null);pick($('demoBtns'),null);$('invWrap').classList.add('hide');$('name').focus();
 };
 $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});
-$('done').onclick=()=>guard(db.collection('events').doc(curId).update({done:true}));
-$('reopen').onclick=()=>guard(db.collection('events').doc(curId).update({done:false}));
+const pubOf=(ev,open)=>({eventId:ev.id,name:ev.name,date:ev.date||'',time:ev.time||'',open});
+$('done').onclick=()=>{const b=db.batch();b.update(db.collection('events').doc(curId),{done:true});
+  if(PUB&&PUB.eventId===curId&&PUB.open)b.set(db.doc('public/open'),{...PUB,open:false});guard(b.commit())};
+$('reopen').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(curId),{done:false});
+  b.set(db.doc('public/open'),pubOf(ev,true));guard(b.commit())};
+$('openCheckin').onclick=()=>guard(db.doc('public/open').set(pubOf(E(),true)));
+$('copyLink').onclick=async()=>{const i=$('linkUrl');try{await navigator.clipboard.writeText(i.value);$('copyLink').textContent='Copied!'}catch(e){i.select();document.execCommand('copy');$('copyLink').textContent='Copied!'}setTimeout(()=>$('copyLink').textContent='Copy link',1500)};
 const toList=()=>{curId=null;render();window.scrollTo(0,0)};
 $('newEv').onclick=toList;$('back').onclick=toList;
 
@@ -235,8 +275,12 @@ function matrix(ev){
 }
 function renderSaved(){
   const box=$('savedList');box.innerHTML='';
-  $('savedPanel').classList.toggle('hide',!EVENTS.length);
-  [...EVENTS].reverse().forEach(ev=>{
+  const admin=role==='admin';
+  const shown=[...EVENTS].reverse().filter(ev=>admin||!ev.done);
+  $('savedPanel').classList.toggle('hide',!shown.length||!!E()||!role);
+  $('savedTitle').textContent=admin?'Saved events':'Events open for check-in';
+  $('adminTools').classList.toggle('hide',!admin);
+  shown.forEach(ev=>{
     const r=document.createElement('div');r.className='ev';
     const i=document.createElement('div');i.className='info';
     const b=document.createElement('b');b.textContent=ev.name;
@@ -244,15 +288,36 @@ function renderSaved(){
     i.append(b,sm);
     const o=document.createElement('button');o.textContent='Open';o.onclick=()=>{curId=ev.id;render();window.scrollTo(0,0)};
     const d=document.createElement('button');d.className='danger';d.textContent='Delete';
-    d.onclick=()=>{if(confirm('Delete "'+ev.name+'" and its '+(ev.people||[]).length+' check-ins for everyone? This cannot be undone.'))guard(db.collection('events').doc(ev.id).delete())};
-    r.append(i,o,d);box.append(r);
+    d.onclick=()=>{if(confirm('Delete "'+ev.name+'" and its '+(ev.people||[]).length+' check-ins for everyone? This cannot be undone.')){const b=db.batch();b.delete(db.collection('events').doc(ev.id));if(PUB&&PUB.eventId===ev.id&&PUB.open)b.set(db.doc('public/open'),{...PUB,open:false});guard(b.commit())}};
+    r.append(i,o);if(admin)r.append(d);box.append(r);
   });
 }
 function render(){
+  const admin=role==='admin';
+  $('norole').classList.toggle('hide',!!role);
+  if(!role){['setup','savedPanel','live'].forEach(i=>$(i).classList.add('hide'));return}
+  if(!admin){
+    const cur=E();if(cur&&cur.done)curId=null;
+    const open=EVENTS.filter(x=>!x.done);
+    if(!curId&&open.length===1)curId=open[0].id;
+  }
   const ev=E();
   renderSaved();
-  $('setup').classList.toggle('hide',!!ev);$('live').classList.toggle('hide',!ev);
+  $('setup').classList.toggle('hide',!!ev||!admin);$('live').classList.toggle('hide',!ev);
   if(!ev)return;
+  $('overview').classList.toggle('hide',!admin);$('finishPanel').classList.toggle('hide',!admin);
+  $('fillPanel').classList.toggle('hide',admin);
+  $('linkPanel').classList.toggle('hide',!admin);
+  const isOpen=!!(PUB&&PUB.eventId===ev.id&&PUB.open);
+  $('linkState').textContent=ev.done?'This event is finished, so check-in is closed.':(isOpen?'Check-in is OPEN for this event. Share the link below with attendees.':'Check-in is not open for this event.');
+  $('openCheckin').classList.toggle('hide',!!ev.done||isOpen);
+  $('linkUrl').value=new URL('checkin.html',location.href).href;
+  $('back').classList.toggle('hide',!admin&&EVENTS.filter(x=>!x.done).length<=1);
+  if(!admin){
+    const l=people(ev);
+    $('fillCount').textContent=l.length;
+    $('fillRecent').textContent=l.length?'Latest: '+l.slice(-5).reverse().map(p=>p.name).join(', '):'No one yet.';
+  }
   $('evtitle').textContent=ev.name;
   $('evwhen').textContent=[ev.date,fmtTime(ev.time)].filter(Boolean).join(' at ');
   $('checkin').classList.toggle('hide',!!ev.done);
