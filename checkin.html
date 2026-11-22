@@ -38,7 +38,7 @@ button:disabled{opacity:.6;cursor:default}
 <h1 id="title">Check in</h1>
 <p class="when" id="when"></p>
 
-<div id="closed" class="panel hide"><b>No event is open for check-in right now.</b><p class="msg">Please ask the person in charge.</p></div>
+<div id="closed" class="panel hide"><b id="closedMsg"></b><p class="msg">Please ask the person in charge if you need help.</p></div>
 <div id="loading" class="panel msg">Loading…</div>
 
 <div id="thanks" class="hide">
@@ -76,18 +76,24 @@ let db,OPEN=null,type='',demo='',busy=false;
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function fmtTime(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return(h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')}
 function pick(g,b){[...g.children].forEach(x=>x.classList.toggle('on',x===b))}
+const eid=new URLSearchParams(location.search).get('e')||'';
+function closedWith(msg){$('closedMsg').textContent=msg;$('closed').classList.remove('hide');$('form').classList.add('hide');$('thanks').classList.add('hide')}
 function show(){
   $('loading').classList.add('hide');
-  const open=!!(OPEN&&OPEN.open);
-  $('closed').classList.toggle('hide',open);
-  if(!open){$('form').classList.add('hide');$('thanks').classList.add('hide');$('title').textContent='Check in';$('when').textContent='';return}
+  if(!OPEN){$('title').textContent='Check in';$('when').textContent='';return closedWith(eid?"This check-in link isn't valid.":'Please scan the QR code for your event.')}
   $('title').textContent=OPEN.name;
   $('when').textContent=[OPEN.date,fmtTime(OPEN.time)].filter(Boolean).join(' at ');
-  if($('thanks').classList.contains('hide'))$('form').classList.remove('hide');
+  if(OPEN.state==='open'){
+    $('closed').classList.add('hide');
+    if($('thanks').classList.contains('hide'))$('form').classList.remove('hide');
+    return;
+  }
+  closedWith(OPEN.state==='closed'?'Check-in for this event has closed.':'Check-in is not open yet. Please come back when the event starts.');
 }
 try{
   firebase.initializeApp(firebaseConfig);db=firebase.firestore();
-  db.doc('public/open').onSnapshot(d=>{OPEN=d.exists?d.data():null;show()},()=>{$('loading').textContent='Could not load. Check your internet connection and reload.'});
+  if(/^[A-Za-z0-9]{10,40}$/.test(eid))db.collection('pub').doc(eid).onSnapshot(d=>{OPEN=d.exists?d.data():null;show()},()=>{$('loading').textContent='Could not load. Check your internet connection and reload.'});
+  else show();
 }catch(e){$('loading').textContent='Could not load. Check your internet connection and reload.'}
 
 $('typeBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;type=b.dataset.v;pick($('typeBtns'),b);$('invWrap').classList.toggle('hide',type==='Member');if(type==='Member')$('inv').value=''};
@@ -95,7 +101,7 @@ $('demoBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;demo=b
 $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('submit').click()});
 
 $('submit').onclick=async()=>{
-  if(busy||!OPEN||!OPEN.open)return;
+  if(busy||!OPEN||OPEN.state!=='open')return;
   const n=$('name').value.trim().slice(0,80);
   if(!n)return err('Please enter your name.');
   if(!type)return err('Please choose Member, Visitor, or Regular Visitor.');
@@ -104,7 +110,7 @@ $('submit').onclick=async()=>{
   if(type!=='Member'&&!inv){$('inv').focus();return err('Please write who invited you.');}
   err('');busy=true;$('submit').disabled=true;$('submit').textContent='Saving…';
   const p={id:uid(),name:n,type,inv:type==='Member'?'':inv,demo,t:Date.now()};
-  const ref=db.collection('events').doc(OPEN.eventId),add=()=>ref.update({people:firebase.firestore.FieldValue.arrayUnion(p)});
+  const ref=db.collection('events').doc(eid),add=()=>ref.update({people:firebase.firestore.FieldValue.arrayUnion(p)});
   try{
     try{await add()}catch(e){await new Promise(r=>setTimeout(r,600));await add()}
     $('thanksMsg').textContent='Thank you, '+n+'! You are checked in.';
