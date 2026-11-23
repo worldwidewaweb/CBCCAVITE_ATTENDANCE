@@ -105,11 +105,12 @@ let db,OPEN=null,type='',demo='',busy=false;
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function fmtTime(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return(h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')}
 function pick(g,b){[...g.children].forEach(x=>x.classList.toggle('on',x===b))}
-const eid=new URLSearchParams(location.search).get('e')||'';
+const qs=new URLSearchParams(location.search);
+let eid=qs.get('e')||'';const sKey=qs.get('s')||'';let unsubPub=null;
 function closedWith(msg){$('closedMsg').textContent=msg;$('closed').classList.remove('hide');$('form').classList.add('hide');$('thanks').classList.add('hide')}
 function show(){
   $('loading').classList.add('hide');
-  if(!OPEN){$('title').textContent='Check in';$('when').textContent='';return closedWith(eid?"This check-in link isn't valid.":'Please scan the QR code for your event.')}
+  if(!OPEN){$('title').textContent='Check in';$('when').textContent='';return closedWith(sKey?'No event is open for this service right now.':(eid?"This check-in link isn't valid.":'Please scan the QR code for your event.'))}
   $('title').textContent=OPEN.name;
   $('when').textContent=[OPEN.date,fmtTime(OPEN.time)].filter(Boolean).join(' at ');
   if(OPEN.state==='open'){
@@ -121,7 +122,13 @@ function show(){
 }
 try{
   firebase.initializeApp(firebaseConfig);db=firebase.firestore();
-  if(/^[A-Za-z0-9]{10,40}$/.test(eid))db.collection('pub').doc(eid).onSnapshot(d=>{OPEN=d.exists?d.data():null;show()},()=>{$('loading').textContent='Could not load. Check your internet connection and reload.'});
+  const bad=()=>{$('loading').textContent='Could not load. Check your internet connection and reload.'};
+  const watch=id=>{eid=id;if(unsubPub)unsubPub();unsubPub=db.collection('pub').doc(id).onSnapshot(d=>{OPEN=d.exists?d.data():null;show()},bad)};
+  if(/^[A-Za-z0-9]{10,40}$/.test(eid))watch(eid);
+  else if(/^[a-z0-9-]{3,40}$/.test(sKey))db.collection('series').doc(sKey).onSnapshot(d=>{
+    if(d.exists&&d.data().eventId&&/^[A-Za-z0-9]{10,40}$/.test(d.data().eventId)){if(d.data().eventId!==eid)watch(d.data().eventId)}
+    else{OPEN=null;show()}
+  },bad);
   else show();
 }catch(e){$('loading').textContent='Could not load. Check your internet connection and reload.'}
 
