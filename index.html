@@ -118,6 +118,7 @@ button.primary:hover{filter:brightness(.95)}
     <button data-tab="dash" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
     <button data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Events</button>
     <button data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Reports</button>
+    <button data-tab="qr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>QR codes</button>
   </nav>
   <div class="user"><span id="who"></span><button id="signout">Sign out</button></div>
 </aside>
@@ -237,6 +238,10 @@ button.primary:hover{filter:brightness(.95)}
   </section>
 </div>
 </div>
+<section class="hide" id="tab-qr">
+  <p class="msg">Print each QR code once and reuse it every week. It always opens check-in for the latest event of that type that you opened.</p>
+  <div class="grid2" id="qrCards"></div>
+</section>
 <section class="panel hide" id="tab-reports">
   <h2>Reports and backup</h2>
   <p class="msg">Download every event's attendance in one Excel file, or save and restore a backup.</p>
@@ -276,7 +281,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Other'];  // add or rename event types here
-let role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -307,6 +312,7 @@ $('signout').onclick=()=>auth.signOut();
 if(auth)auth.onAuthStateChanged(u=>{
   $('login').classList.toggle('hide',!!u);$('app').classList.toggle('hide',!u);
   if(unsub){unsub();unsub=null}
+  if(unsubSer){unsubSer();unsubSer=null}
   if(!u){EVENTS=[];curId=null;role='';return}
   $('who').textContent='Signed in as '+u.email;$('pass').value='';
   db.collection('users').doc((u.email||'').toLowerCase()).get().then(d=>{
@@ -314,6 +320,7 @@ if(auth)auth.onAuthStateChanged(u=>{
     role=(r==='admin')?'admin':'';
     $('who').textContent='Signed in as '+u.email+(role?' ('+'Admin'+')':'');
     if(!role){render();return}
+    unsubSer=db.collection('series').onSnapshot(sn=>{SER={};sn.forEach(d=>{SER[d.id]=d.data()});render()},()=>{});
     unsub=db.collection('events').orderBy('created').onSnapshot(
       snap=>{EVENTS=snap.docs.map(d=>({id:d.id,...d.data()}));render()},
       e=>alert('Could not load events: '+e.message)
@@ -357,6 +364,7 @@ function createEvent(openNow){
   const b=db.batch();
   b.set(ref,{kind,name,date,time,page,done:false,open:openNow,people:[],created:Date.now()});
   b.set(db.collection('pub').doc(ref.id),{name,date,time,state:openNow?'open':'planned'});
+  if(openNow)serSet(b,{id:ref.id,kind,name});
   guard(b.commit());
 }
 $('start').onclick=()=>createEvent(true);
@@ -378,8 +386,8 @@ $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});
 const stateOf=ev=>ev.done?'done':(ev.open?'open':'planned');
 const pubSet=(b,ev,state)=>b.set(db.collection('pub').doc(ev.id),{name:ev.name,date:ev.date||'',time:ev.time||'',state});
 $('done').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{done:true,open:false});pubSet(b,ev,'closed');guard(b.commit())};
-$('reopen').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{done:false,open:true});pubSet(b,ev,'open');guard(b.commit())};
-$('openCheckin').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{open:true});pubSet(b,ev,'open');guard(b.commit())};
+$('reopen').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{done:false,open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
+$('openCheckin').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
 $('closeCheckin').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{open:false});pubSet(b,ev,'planned');guard(b.commit())};
 $('copyLink').onclick=async()=>{const i=$('linkUrl');try{await navigator.clipboard.writeText(i.value);$('copyLink').textContent='Copied!'}catch(e){i.select();document.execCommand('copy');$('copyLink').textContent='Copied!'}setTimeout(()=>$('copyLink').textContent='Copy link',1500)};
 const toList=()=>{curId=null;render();window.scrollTo(0,0)};
@@ -398,24 +406,43 @@ function drawQR(c,url){
 const linkOf=ev=>{const u=new URL(ev.page||'checkin.html',location.href);u.searchParams.set('e',ev.id);return u.href};
 $('pageSave').onclick=()=>{const ev=E();if(!ev)return;const p=cleanPage($('pageEdit').value);if(p===null)return;guard(db.collection('events').doc(ev.id).update({page:p}))};
 $('qrDl').onclick=()=>{const ev=E();$('qr').toBlob(b=>dl(b,'checkin-qr-'+(ev?ev.name.replace(/[^\w\-]+/g,'_'):'event')+'.png'))};
-$('printQr').onclick=()=>{
-  const ev=E();if(!ev)return;
-  $('posterTitle').textContent=ev.name;
-  $('posterWhen').textContent=[ev.date,fmtTime(ev.time)].filter(Boolean).join(' at ');
-  $('posterUrl').textContent=linkOf(ev);
-  drawQR($('posterQr'),linkOf(ev));
-  document.body.classList.add('pp');window.print();
-};
+function printPoster(title,when,url){
+  $('posterTitle').textContent=title;$('posterWhen').textContent=when;$('posterUrl').textContent=url;
+  drawQR($('posterQr'),url);document.body.classList.add('pp');window.print();
+}
+$('printQr').onclick=()=>{const ev=E();if(ev)printPoster(ev.name,[ev.date,fmtTime(ev.time)].filter(Boolean).join(' at '),linkOf(ev))};
+const SERIES=TEMPLATES.filter(t=>t!=='Other').map(n=>({key:n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:n}));
+const seriesKey=kind=>{const x=SERIES.find(v=>v.name===kind);return x?x.key:''};
+const seriesLink=k=>new URL('checkin.html?s='+k,location.href).href;
+const serSet=(b,ev)=>{const k=seriesKey(ev.kind);if(k)b.set(db.collection('series').doc(k),{eventId:ev.id,name:ev.name})};
+function renderQr(){
+  const box=$('qrCards');box.innerHTML='';
+  SERIES.forEach(v=>{
+    const url=seriesLink(v.key),lk=SER[v.key],ev=lk&&EVENTS.find(e=>e.id===lk.eventId);
+    const p=document.createElement('div');p.className='panel';
+    const h=document.createElement('h2');h.textContent=v.name;
+    const c=document.createElement('canvas');c.id='qr-'+v.key;c.style.cssText='display:block;width:200px;height:200px;image-rendering:pixelated;background:#fff;border:1px solid var(--line);border-radius:8px';
+    const st=document.createElement('div');st.className='msg';
+    st.textContent=ev?('Linked to: '+ev.name+(ev.date?' ('+ev.date+')':'')+' · '+({open:'check-in is OPEN',planned:'not open yet',done:'finished'})[stateOf(ev)]):'Not linked yet. Open an event of this type and the QR starts working.';
+    const row=document.createElement('div');row.className='row';
+    const mk=(t,f)=>{const b=document.createElement('button');b.textContent=t;b.onclick=f;return b};
+    row.append(
+      mk('Print QR sheet',()=>printPoster(v.name,'',url)),
+      mk('Download PNG',()=>c.toBlob(b=>dl(b,'qr-'+v.key+'.png'))),
+      mk('Copy link',async e=>{try{await navigator.clipboard.writeText(url);e.target.textContent='Copied!';setTimeout(()=>e.target.textContent='Copy link',1500)}catch(x){prompt('Copy this link:',url)}}));
+    p.append(h,c,st,row);box.append(p);drawQR(c,url);
+  });
+}
 window.addEventListener('afterprint',()=>document.body.classList.remove('pp'));
 
 // ---- dashboard ----
 let tab='dash';
-const TITLES={dash:'Dashboard',events:'Events',reports:'Reports'};
+const TITLES={dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function bars(id,items){const max=Math.max(1,...items.map(i=>i.v));$(id).innerHTML=items.length?items.map(i=>'<div class="bar-row"><span class="bl" title="'+esc(i.l)+'">'+esc(i.l)+'</span><span class="bt"><i style="width:'+Math.round(i.v/max*100)+'%"></i></span><b>'+i.v+'</b></div>').join(''):'<div class="msg">No data yet.</div>'}
 function applyTab(){
   $('pageTitle').textContent=TITLES[tab];
-  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');
+  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');
   [...$('tabs').children].forEach(b=>b.classList.toggle('act',b.dataset.tab===tab));
 }
 function showTab(t){tab=t;applyTab();render();window.scrollTo(0,0)}
@@ -475,7 +502,7 @@ function renderSaved(){
 function render(){
   const admin=role==='admin';
   $('norole').classList.toggle('hide',!!role);
-  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports'].forEach(i=>$(i).classList.add('hide'));return}
+  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr'].forEach(i=>$(i).classList.add('hide'));return}
   $('tabs').classList.remove('hide');applyTab();
   if(!admin){
     const cur=E();if(cur&&cur.done)curId=null;
@@ -483,7 +510,7 @@ function render(){
     if(!curId&&open.length===1)curId=open[0].id;
   }
   const ev=E();
-  renderSaved();renderDash();
+  renderSaved();renderDash();if(tab==='qr')renderQr();
   $('setup').classList.toggle('hide',!!ev||!admin);$('live').classList.toggle('hide',!ev);
   if(!ev)return;
   $('overview').classList.toggle('hide',!admin);$('finishPanel').classList.toggle('hide',!admin);
