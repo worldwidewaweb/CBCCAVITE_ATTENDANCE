@@ -281,7 +281,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Other'];  // add or rename event types here
-let unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -313,14 +313,14 @@ if(auth)auth.onAuthStateChanged(u=>{
   $('login').classList.toggle('hide',!!u);$('app').classList.toggle('hide',!u);
   if(unsub){unsub();unsub=null}
   if(unsubSer){unsubSer();unsubSer=null}
-  if(!u){EVENTS=[];curId=null;role='';return}
+  if(!u){EVENTS=[];curId=null;role='';serLoaded=false;pendingLink={};return}
   $('who').textContent='Signed in as '+u.email;$('pass').value='';
   db.collection('users').doc((u.email||'').toLowerCase()).get().then(d=>{
     const r=d.exists?d.data().role:'';
     role=(r==='admin')?'admin':'';
     $('who').textContent='Signed in as '+u.email+(role?' ('+'Admin'+')':'');
     if(!role){render();return}
-    unsubSer=db.collection('series').onSnapshot(sn=>{SER={};sn.forEach(d=>{SER[d.id]=d.data()});render()},()=>{});
+    unsubSer=db.collection('series').onSnapshot(sn=>{SER={};sn.forEach(d=>{SER[d.id]=d.data()});serLoaded=true;render()},()=>{});
     unsub=db.collection('events').orderBy('created').onSnapshot(
       snap=>{EVENTS=snap.docs.map(d=>({id:d.id,...d.data()}));render()},
       e=>alert('Could not load events: '+e.message)
@@ -415,6 +415,19 @@ const SERIES=TEMPLATES.filter(t=>t!=='Other').map(n=>({key:n.toLowerCase().repla
 const seriesKey=kind=>{const x=SERIES.find(v=>v.name===kind);return x?x.key:''};
 const seriesLink=k=>new URL('checkin.html?s='+k,location.href).href;
 const serSet=(b,ev)=>{const k=seriesKey(ev.kind);if(k)b.set(db.collection('series').doc(k),{eventId:ev.id,name:ev.name})};
+function autoLink(){
+  if(role!=='admin'||!serLoaded)return;
+  SERIES.forEach(v=>{
+    const open=EVENTS.filter(e=>e.kind===v.name&&stateOf(e)==='open');
+    if(!open.length)return;
+    const cur=SER[v.key],curEv=cur&&EVENTS.find(e=>e.id===cur.eventId);
+    if(curEv&&stateOf(curEv)==='open')return;
+    const latest=open[open.length-1];
+    if(pendingLink[v.key]===latest.id)return;
+    pendingLink[v.key]=latest.id;
+    db.collection('series').doc(v.key).set({eventId:latest.id,name:latest.name}).catch(()=>{delete pendingLink[v.key]});
+  });
+}
 function renderQr(){
   const box=$('qrCards');box.innerHTML='';
   SERIES.forEach(v=>{
@@ -503,7 +516,7 @@ function render(){
   const admin=role==='admin';
   $('norole').classList.toggle('hide',!!role);
   if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr'].forEach(i=>$(i).classList.add('hide'));return}
-  $('tabs').classList.remove('hide');applyTab();
+  $('tabs').classList.remove('hide');applyTab();autoLink();
   if(!admin){
     const cur=E();if(cur&&cur.done)curId=null;
     const open=EVENTS.filter(x=>!x.done);
