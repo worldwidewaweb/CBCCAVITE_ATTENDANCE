@@ -38,6 +38,16 @@ button:disabled{opacity:.6;cursor:default}
 .hero .tagline{text-transform:uppercase;letter-spacing:.12em;font-size:.85rem;opacity:.9}
 .hero .when{color:rgba(255,255,255,.9);margin:0;font-size:1.05rem}
 .hero .venue{color:rgba(255,255,255,.9);margin:6px 0 0}
+
+/* ---- Church colors: gold, navy and cream ---- */
+:root{--bg:#faf6ea;--surface:#fff;--ink:#1c1a14;--muted:#6f6a58;--line:#e6dfc8;--green:#8a6400;--greenbg:#fbf0c8;--gold:#e0a800;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#2f5f8f;--bluebg:#e4eef8;--stone:#ece8dc;--stonet:#4b4636;--red:#b3402f}
+@media (prefers-color-scheme:dark){:root{--bg:#14120c;--surface:#201d13;--ink:#f3eee0;--muted:#b3ab92;--line:#3a3524;--green:#f0c53d;--greenbg:#3a3010;--gold:#e8b923;--amber:#e6bd62;--amberbg:#3d3115;--blue:#9cc3ec;--bluebg:#1f3550;--stone:#2c281b;--stonet:#cfc7a8;--red:#ee8b7a}}
+button.on,button.primary{background:var(--gold);border-color:var(--gold);color:#1c1a14}
+button.primary:hover{filter:brightness(.95)}
+.hero{background:linear-gradient(135deg,#fff3c4 0%,#ffe08a 60%,var(--accent) 170%);color:#1c1a14}
+.hero h1{color:#1c1a14}.hero .when{color:#4b3f12}.hero .venue{color:#4b3f12}
+.hero .tagline{color:#8a6400;opacity:1;font-weight:700}
+@media (prefers-color-scheme:dark){.hero{background:linear-gradient(135deg,#3a3010 0%,#5a4608 70%,var(--accent) 200%);color:#f3eee0}.hero h1{color:#fff}.hero .when,.hero .venue{color:#f3eee0}.hero .tagline{color:#f0c53d}}
 </style>
 </head>
 <body>
@@ -77,10 +87,10 @@ button:disabled{opacity:.6;cursor:default}
 // ---- Edit these three lines to change how this page looks ----
 const TAGLINE="Welcome!";
 const VENUE="";            // e.g. "CBC Cavite Main Sanctuary"
-const ACCENT="#1f7a55";    // main color (buttons and banner)
+const ACCENT="#e0a800";    // gold accent (buttons and banner glow)
 // --------------------------------------------------------------
 document.documentElement.style.setProperty('--accent',ACCENT);
-document.documentElement.style.setProperty('--green',ACCENT);
+document.documentElement.style.setProperty('--gold',ACCENT);
 document.addEventListener('DOMContentLoaded',()=>{document.getElementById('tagline').textContent=TAGLINE;document.getElementById('venue').textContent=VENUE});
 const firebaseConfig = {
   apiKey: "AIzaSyAD_H5blVroRJP0-_K81A7TrPCoQnJ1t54",
