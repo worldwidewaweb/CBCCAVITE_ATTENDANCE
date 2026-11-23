@@ -33,6 +33,12 @@ button:disabled{opacity:.6;cursor:default}
 .err{color:var(--red);min-height:1.4em;margin-bottom:8px}
 .ok{background:var(--greenbg);color:var(--green);border-radius:12px;padding:18px;font-weight:600;margin-bottom:16px}
 .msg{color:var(--muted)}
+
+/* ---- Church colors: gold, navy and cream ---- */
+:root{--bg:#faf6ea;--surface:#fff;--ink:#1c1a14;--muted:#6f6a58;--line:#e6dfc8;--green:#8a6400;--greenbg:#fbf0c8;--gold:#e0a800;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#2f5f8f;--bluebg:#e4eef8;--stone:#ece8dc;--stonet:#4b4636;--red:#b3402f}
+@media (prefers-color-scheme:dark){:root{--bg:#14120c;--surface:#201d13;--ink:#f3eee0;--muted:#b3ab92;--line:#3a3524;--green:#f0c53d;--greenbg:#3a3010;--gold:#e8b923;--amber:#e6bd62;--amberbg:#3d3115;--blue:#9cc3ec;--bluebg:#1f3550;--stone:#2c281b;--stonet:#cfc7a8;--red:#ee8b7a}}
+button.on,button.primary{background:var(--gold);border-color:var(--gold);color:#1c1a14}
+button.primary:hover{filter:brightness(.95)}
 </style>
 </head>
 <body>
