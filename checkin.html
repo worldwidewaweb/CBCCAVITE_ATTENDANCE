@@ -106,7 +106,7 @@ try{
   if(/^[A-Za-z0-9]{10,40}$/.test(eid))watch(eid);
   else if(/^[a-z0-9-]{3,40}$/.test(sKey))db.collection('series').doc(sKey).onSnapshot(d=>{
     if(d.exists&&d.data().eventId&&/^[A-Za-z0-9]{10,40}$/.test(d.data().eventId)){if(d.data().eventId!==eid)watch(d.data().eventId)}
-    else{OPEN=null;show()}
+    else{if(unsubPub){unsubPub();unsubPub=null}eid='';OPEN=null;show()}
   },bad);
   else show();
 }catch(e){$('loading').textContent='Could not load. Check your internet connection and reload.'}
