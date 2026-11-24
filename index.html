@@ -169,6 +169,7 @@ button.sm{padding:6px 11px;font-size:.85rem}
   <h2>Event details</h2>
   <div class="lbl">Event type</div>
   <div class="choices" id="tplBtns"></div>
+  <div class="lbl hide" id="semLbl">Which seminar?</div><div class="choices hide" id="semBtns"></div>
   <label id="enameWrap" class="hide">Event name<input id="ename" placeholder="e.g. Celebration Service"></label>
   <label id="epageWrap" class="hide">Separate page for this event (optional)<input id="epage" placeholder="e.g. special-event.html or https://..."></label>
   <label id="eqrWrap" class="hide">QR code for this event<select id="eqr"></select></label>
@@ -181,7 +182,7 @@ button.sm{padding:6px 11px;font-size:.85rem}
 
 <section class="panel hide" id="savedPanel">
   <h2 id="savedTitle">Manage events</h2>
-  <div class="row" style="margin-bottom:10px"><input id="evSearch" placeholder="Search by name, date or type" style="flex:2;min-width:170px"><select id="evFilter" style="flex:1;min-width:130px"><option value="">All statuses</option><option value="open">Open</option><option value="planned">Planned</option><option value="done">Finished</option></select></div>
+  <div class="row" style="margin-bottom:10px"><input id="evSearch" placeholder="Search by name, date or type" style="flex:2;min-width:170px"><select id="evFilter" style="flex:1;min-width:130px"><option value="">All statuses</option><option value="open">Open</option><option value="planned">Planned</option><option value="done">Finished</option></select><button class="sm" id="finishAll">Finish all open</button></div>
   <div id="savedList"></div>
 </section>
 
@@ -303,7 +304,7 @@ const firebaseConfig = {
 // --------------------------------------------------------
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
-const TEMPLATES=['Celebration Service','Youth LINK','Other'];  // add or rename event types here
+const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Other'];  // add or rename event types here
 let editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -353,13 +354,27 @@ if(auth)auth.onAuthStateChanged(u=>{
 const guard=p=>p.catch(e=>alert('Could not save: '+e.message));
 
 // ---- event type choices ----
+let grp='';
+const SEMINARS=['Spiritual Formation Seminar (SFS)','Spiritual Maturity Seminar (SMS)','Discover My Ministry Seminar (DMS)'];
 TEMPLATES.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.dataset.v=t;$('tplBtns').append(b)});
+SEMINARS.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.dataset.v=t;$('semBtns').append(b)});
+const formIds=['enameWrap','epageWrap','eqrWrap','start','plan'];
+function hideForm(){formIds.forEach(i=>$(i).classList.add('hide'))}
+function showForm(name,key){
+  formIds.forEach(i=>$(i).classList.remove('hide'));
+  fillQrSelect($('eqr'));$('eqr').value=key;$('ename').value=name;$('ename').focus();
+  $('ename').setSelectionRange(name.length,name.length);
+}
 $('tplBtns').onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
-  tpl=b.dataset.v;pick($('tplBtns'),b);
-  $('enameWrap').classList.remove('hide');$('epageWrap').classList.remove('hide');$('eqrWrap').classList.remove('hide');fillQrSelect($('eqr'));$('eqr').value=seriesKey(tpl);$('start').classList.remove('hide');$('plan').classList.remove('hide');
-  $('ename').value=tpl==='Other'?'':tpl;$('ename').focus();
-  if(tpl!=='Other')$('ename').setSelectionRange(tpl.length,tpl.length);
+  pick($('tplBtns'),b);pick($('semBtns'),null);grp='';
+  if(b.dataset.v==='Seminars'){tpl='';$('semLbl').classList.remove('hide');$('semBtns').classList.remove('hide');hideForm();return}
+  $('semLbl').classList.add('hide');$('semBtns').classList.add('hide');
+  tpl=b.dataset.v;showForm(tpl==='Other'?'':tpl,seriesKey(tpl));
+};
+$('semBtns').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  pick($('semBtns'),b);tpl=b.dataset.v;grp='Seminars';showForm(tpl,seriesKey('Seminars'));
 };
 // ---- buttons ----
 function pick(group,btn){[...group.children].forEach(b=>b.classList.toggle('on',b===btn))}
@@ -381,11 +396,11 @@ function createEvent(openNow){
   if(!name){$('ename').focus();return}
   const page=cleanPage($('epage').value);
   if(page===null){$('epage').focus();return}
-  const qr=$('eqr').value,kind=tpl,date=$('edate').value,time=$('etime').value;
+  const qr=$('eqr').value,kind=tpl,group=grp,date=$('edate').value,time=$('etime').value;
   const ref=db.collection('events').doc();
-  curId=ref.id;tpl='';pick($('tplBtns'),null);$('enameWrap').classList.add('hide');$('epageWrap').classList.add('hide');$('eqrWrap').classList.add('hide');$('start').classList.add('hide');$('plan').classList.add('hide');$('ename').value='';$('epage').value='';
+  curId=ref.id;tpl='';grp='';pick($('tplBtns'),null);pick($('semBtns'),null);$('semLbl').classList.add('hide');$('semBtns').classList.add('hide');$('enameWrap').classList.add('hide');$('epageWrap').classList.add('hide');$('eqrWrap').classList.add('hide');$('start').classList.add('hide');$('plan').classList.add('hide');$('ename').value='';$('epage').value='';
   const b=db.batch();
-  b.set(ref,{kind,qr,name,date,time,page,done:false,open:openNow,people:[],created:Date.now()});
+  b.set(ref,{kind,group,qr,name,date,time,page,done:false,open:openNow,people:[],created:Date.now()});
   b.set(db.collection('pub').doc(ref.id),{name,date,time,state:openNow?'open':'planned'});
   if(openNow)serSet(b,{id:ref.id,kind,qr,name});
   guard(b.commit());
@@ -486,10 +501,21 @@ function renderQr(){
 }
 window.addEventListener('afterprint',()=>document.body.classList.remove('pp'));
 
+// ---- finish / reopen / start ----
+const evDoc=ev=>db.collection('events').doc(ev.id);
+const finishEv=ev=>{const b=db.batch();b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed');guard(b.commit())};
+const reopenEv=ev=>{const b=db.batch();b.update(evDoc(ev),{done:false,open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
+const startEv=ev=>{const b=db.batch();b.update(evDoc(ev),{open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
+$('finishAll').onclick=()=>{
+  const o=EVENTS.filter(e=>stateOf(e)==='open');
+  if(!o.length)return alert('There are no open events.');
+  if(!confirm('Finish '+o.length+' open event(s)? Check-in will close for all of them.'))return;
+  const b=db.batch();o.forEach(ev=>{b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed')});guard(b.commit());
+};
 // ---- edit / manage ----
 function openEdit(ev){
   if(!ev)return;editId=ev.id;
-  const kinds=[...TEMPLATES];if(ev.kind&&!kinds.includes(ev.kind))kinds.push(ev.kind);
+  const kinds=[...TEMPLATES.filter(t=>t!=='Seminars'),...SEMINARS];if(ev.kind&&!kinds.includes(ev.kind))kinds.push(ev.kind);
   $('edKind').innerHTML=kinds.map(k=>'<option>'+esc(k)+'</option>').join('');
   $('edKind').value=ev.kind||'Other';$('edName').value=ev.name;$('edDate').value=ev.date||'';$('edTime').value=ev.time||'';
   tab='events';render();window.scrollTo(0,0);$('edName').focus();
@@ -498,7 +524,7 @@ $('editEv').onclick=()=>openEdit(E());
 $('edCancel').onclick=()=>{editId=null;render()};
 $('edSave').onclick=()=>{
   const name=$('edName').value.trim();if(!name){$('edName').focus();return}
-  const id=editId,d={kind:$('edKind').value,name,date:$('edDate').value,time:$('edTime').value},b=db.batch();
+  const id=editId,d={kind:$('edKind').value,group:SEMINARS.includes($('edKind').value)?'Seminars':'',name,date:$('edDate').value,time:$('edTime').value},b=db.batch();
   b.update(db.collection('events').doc(id),d);
   b.set(db.collection('pub').doc(id),{name,date:d.date,time:d.time},{merge:true});
   editId=null;guard(b.commit());render();
@@ -542,9 +568,9 @@ function trendSvg(list){
 function renderDash(){
   const open=EVENTS.filter(e=>stateOf(e)==='open'),planned=EVENTS.filter(e=>stateOf(e)==='planned');
   // filters
-  const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))];
-  if(document.activeElement!==$('dKind')){$('dKind').innerHTML='<option value="">All event types</option>'+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('dKind').value=kinds.includes(dashKind)?dashKind:''}
-  let set=EVENTS.filter(e=>(e.people||[]).length>0&&(!dashKind||e.kind===dashKind)).sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))||(a.created||0)-(b.created||0));
+  const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))],hasSem=EVENTS.some(e=>e.group==='Seminars');
+  if(document.activeElement!==$('dKind')){$('dKind').innerHTML='<option value="">All event types</option>'+(hasSem?'<option value="group:Seminars">All seminars</option>':'')+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('dKind').value=(kinds.includes(dashKind)||(hasSem&&dashKind==='group:Seminars'))?dashKind:''}
+  let set=EVENTS.filter(e=>(e.people||[]).length>0&&(!dashKind||e.kind===dashKind||dashKind==='group:'+(e.group||'x'))).sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))||(a.created||0)-(b.created||0));
   if(+dashRange)set=set.slice(-(+dashRange));
   const all=set.flatMap(e=>(e.people||[]).map(p=>({...p,ev:e})));
   const AGES=['Adult','Youth','Kids'],cnt=k=>all.filter(p=>p.type===k||p.demo===k).length;
@@ -594,7 +620,8 @@ function renderSaved(){
     i.append(b,sm);
     const acts=document.createElement('div');acts.className='acts';
     const mk=(t,fn,c)=>{const x=document.createElement('button');x.className='sm'+(c?' '+c:'');x.textContent=t;x.onclick=fn;return x};
-    acts.append(mk('Open',()=>{curId=ev.id;render();window.scrollTo(0,0)}),mk('Edit',()=>openEdit(ev)),mk('PDF',()=>doPdf(ev)),mk('Excel',()=>doXlsx(ev)),
+    const stateBtn=st==='open'?mk('Finish',()=>{if(confirm('Mark "'+ev.name+'" as finished? Check-in will close.'))finishEv(ev)}):(st==='done'?mk('Reopen',()=>reopenEv(ev)):mk('Start',()=>startEv(ev)));
+    acts.append(mk('Open',()=>{curId=ev.id;render();window.scrollTo(0,0)}),stateBtn,mk('Edit',()=>openEdit(ev)),mk('PDF',()=>doPdf(ev)),mk('Excel',()=>doXlsx(ev)),
       mk('Delete',()=>{if(confirm('Delete "'+ev.name+'" and its '+(ev.people||[]).length+' check-ins for everyone? This cannot be undone.')){const b2=db.batch();b2.delete(db.collection('events').doc(ev.id));b2.delete(db.collection('pub').doc(ev.id));guard(b2.commit())}},'danger'));
     r.append(i,acts);box.append(r);
   });
