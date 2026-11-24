@@ -191,6 +191,9 @@ main{padding:12px 12px 72px}
 #app.compact .user #who{display:none}#app.compact .user button{font-size:0;padding:9px 0}#app.compact .user button::before{content:"\23FB";font-size:1.1rem}
 }
 @media (max-width:800px){#sideToggle{display:none}.ev .acts{width:100%;margin-left:0}.ev .acts>button.sm:not([aria-label]){flex:1}.subtabs button{padding:9px 10px;font-size:.88rem}}
+.banner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--amberbg);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.banner b{font-weight:700}.banner .row{gap:6px}
+button.x.ed{color:var(--green)}
 </style>
 </head>
 <body>
@@ -225,6 +228,7 @@ main{padding:12px 12px 72px}
 
 
 <section id="tab-dash">
+  <div class="banner hide" id="staleBanner"></div>
   <div class="head"><div class="row" style="gap:8px;flex:1"><select id="dKind" style="max-width:230px"></select><select id="dRange" style="max-width:170px"><option value="8">Last 8 events</option><option value="12">Last 12 events</option><option value="0">All time</option></select></div><button class="primary" id="dashNew">+ New event</button></div>
   <div class="cards" id="dashCards"></div>
   <div class="panel"><h2>Attendance trend</h2>
@@ -324,7 +328,7 @@ main{padding:12px 12px 72px}
   </section>
 
   <section class="panel" id="overview">
-    <h2>Overview</h2>
+    <div class="head" style="margin-bottom:8px"><h2 style="margin:0">Overview</h2><input id="attSearch" placeholder="Search attendees" style="max-width:220px"></div>
     <div class="scroll"><table>
       <thead><tr><th>Name</th><th>Type</th><th>Invited by</th><th>Age group</th><th class="noprint"></th></tr></thead>
       <tbody id="rows"></tbody>
@@ -649,12 +653,26 @@ function showDialog(o){
 }
 window.alert=m=>{const t=String(m);ask({title:/^Could not/.test(t)?'Something went wrong':'Notice',message:t,alertOnly:true})};
 
+// ---- fix a misspelled name ----
+function renameAttendee(ev,p){
+  ask({title:'Fix this name',message:'Correct the spelling for this check-in.',input:true,value:p.name,ok:'Save'}).then(v=>{
+    const n=(v||'').trim().slice(0,80);if(!n||n===p.name)return;
+    guard(db.runTransaction(async tx=>{const ref=db.collection('events').doc(ev.id),d=await tx.get(ref);tx.update(ref,{people:(d.data().people||[]).map(x=>x.id===p.id?{...x,name:n}:x)})}));
+  });
+}
+$('attSearch').oninput=()=>render();
+
 // ---- finish / reopen / start ----
 const evDoc=ev=>db.collection('events').doc(ev.id);
 const delEv=ev=>ask({title:'Delete this event?',message:'"'+ev.name+'" and its '+(ev.people||[]).length+' check-ins will be deleted for everyone.\nThis cannot be undone.',ok:'Delete',danger:true}).then(y=>{if(y){const b=db.batch();b.delete(evDoc(ev));b.delete(db.collection('pub').doc(ev.id));guard(b.commit())}});
 const finishEv=ev=>{const b=db.batch();b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed');guard(b.commit())};
 const reopenEv=ev=>{const b=db.batch();b.update(evDoc(ev),{done:false,open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
 const startEv=ev=>{const b=db.batch();b.update(evDoc(ev),{open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
+function finishMany(list){
+  ask({title:'Finish '+list.length+' event'+(list.length>1?'s':'')+'?',message:list.map(e=>'\u2022 '+e.name+(e.date?' ('+e.date+')':'')).join('\n')+'\n\nCheck-in will close for '+(list.length>1?'all of them.':'it.'),ok:'Finish'}).then(y=>{
+    if(!y)return;const b=db.batch();list.forEach(ev=>{b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed')});guard(b.commit());
+  });
+}
 $('finishAll').onclick=()=>{
   const o=EVENTS.filter(e=>stateOf(e)==='open');
   if(!o.length)return alert('There are no open events.');
@@ -795,6 +813,15 @@ function trendSvg(list){
 }
 function renderDash(){
   const open=EVENTS.filter(e=>stateOf(e)==='open'),planned=EVENTS.filter(e=>stateOf(e)==='planned');
+  const stale=open.filter(e=>{const t=new Date((e.date||'')+'T'+(e.time||'00:00'));return !isNaN(t)&&Date.now()-t>864e5});
+  const sb=$('staleBanner');sb.classList.toggle('hide',!stale.length);sb.innerHTML='';
+  if(stale.length){
+    const m=document.createElement('span');m.innerHTML='<b>'+stale.length+' event'+(stale.length>1?'s have':' has')+' been open for over a day.</b> Still collecting check-ins?';
+    const r=document.createElement('div');r.className='row';
+    const rv=document.createElement('button');rv.className='sm';rv.textContent='Review';rv.onclick=()=>{$('evFilter').value='open';showTab('events')};
+    const fn=document.createElement('button');fn.className='sm primary';fn.textContent='Finish them';fn.onclick=()=>finishMany(stale);
+    r.append(rv,fn);sb.append(m,r);
+  }
   // filters
   const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))],hasSem=EVENTS.some(e=>e.group==='Seminars');
   if(document.activeElement!==$('dKind')){$('dKind').innerHTML='<option value="">All event types</option>'+(hasSem?'<option value="group:Seminars">All seminars</option>':'')+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('dKind').value=(kinds.includes(dashKind)||(hasSem&&dashKind==='group:Seminars'))?dashKind:''}
@@ -899,19 +926,22 @@ function render(){
   $('checkin').classList.toggle('hide',!!ev.done);
   $('finishBox').classList.toggle('hide',!!ev.done);$('doneBox').classList.toggle('hide',!ev.done);
   const tb=$('rows');tb.innerHTML='';
-  const list=people(ev);
+  const everyone=people(ev),qa=($('attSearch').value||'').toLowerCase(),list=everyone.filter(p=>!qa||p.name.toLowerCase().includes(qa)),seen={};
+  everyone.forEach(p=>{const k=normName(p.name);seen[k]=(seen[k]||0)+1});
   list.forEach(p=>{
     const tr=document.createElement('tr');
     const c=t=>{const td=document.createElement('td');td.textContent=t;return td};
-    tr.append(c(p.name));
+    const nc=c(p.name);if(seen[normName(p.name)]>1){const d=document.createElement('span');d.className='tag st-planned';d.style.marginLeft='8px';d.textContent='Duplicate?';d.title='Another check-in has the same name';nc.append(d)}
+    tr.append(nc);
     const tt=document.createElement('td');const sp=document.createElement('span');sp.className='tag '+tagCls(p.type);sp.textContent=p.type;tt.append(sp);tr.append(tt);
     tr.append(c(p.inv||'-'),c(p.demo));
     const xd=document.createElement('td');xd.className='noprint';
+    const ed=document.createElement('button');ed.className='x ed';ed.textContent='\u270e';ed.setAttribute('aria-label','Rename '+p.name);ed.title='Fix the name';ed.onclick=()=>renameAttendee(ev,p);xd.append(ed);
     if(!ev.done){const b=document.createElement('button');b.className='x';b.textContent='✕';b.setAttribute('aria-label','Remove '+p.name);
       b.onclick=()=>guard(db.collection('events').doc(ev.id).update({people:firebase.firestore.FieldValue.arrayRemove(p)}));xd.append(b)}
     tr.append(xd);tb.append(tr);
   });
-  $('empty').classList.toggle('hide',list.length>0);
+  $('empty').textContent=everyone.length?'No attendees match your search.':'No one has checked in yet.';$('empty').classList.toggle('hide',list.length>0);
   const{m,tot}=matrix(ev);
   $('sum').innerHTML=TYPES.map(t=>`<tr><td>${t}</td><td class="n">${m[t].Adult}</td><td class="n">${m[t].Youth}</td><td class="n">${m[t].Kids}</td><td class="n"><b>${m[t].Total}</b></td></tr>`).join('');
   $('sumfoot').innerHTML=`<tr><td>Total</td><td class="n">${tot.Adult}</td><td class="n">${tot.Youth}</td><td class="n">${tot.Kids}</td><td class="n">${tot.Total}</td></tr>`;
@@ -921,6 +951,7 @@ function render(){
   $('overview').classList.toggle('hide',evSub!=='att');
   $('linkPanel').classList.toggle('hide',evSub!=='share');
   $('finishPanel').classList.toggle('hide',evSub!=='done');
+  $('evTabs').children[0].textContent='Attendees ('+(ev.people||[]).length+')';
   [...$('evTabs').children].forEach(b=>b.classList.toggle('act',b.dataset.sub===evSub));
 }
 
