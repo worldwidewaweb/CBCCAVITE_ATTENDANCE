@@ -128,6 +128,7 @@ button.dangerfill{background:var(--red);border-color:var(--red);color:#fff;font-
   <div class="brand">CBC Cavite<small>Event attendance</small></div>
   <nav class="sidenav" id="tabs">
     <button data-tab="dash" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
+    <button data-tab="an"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v3M12 9v9M17 5v13"/></svg>Analytics</button>
     <button data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Events</button>
     <button data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Reports</button>
     <button data-tab="qr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>QR codes</button>
@@ -268,6 +269,24 @@ button.dangerfill{background:var(--red);border-color:var(--red);color:#fff;font-
   </section>
 </div>
 </div>
+<section class="hide" id="tab-an">
+  <div class="head"><div class="row" style="gap:8px;flex:1"><select id="anKind" style="max-width:230px"></select><select id="anRange" style="max-width:190px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last 12 months</option><option value="0">All time</option></select></div><button id="anXlsx">Download analytics (Excel)</button></div>
+  <div class="cards" id="anCards"></div>
+  <div class="panel"><h2>Attendance over time</h2><div id="anLine"></div></div>
+  <div class="grid2">
+    <div class="panel"><h2>Members and visitors</h2><div id="anType"></div></div>
+    <div class="panel"><h2>Age groups</h2><div id="anAge"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h2>Average by day of the week</h2><div id="anDow"></div></div>
+    <div class="panel"><h2>Check-ins by month</h2><div id="anMonth"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="panel"><h2>Most faithful attendees</h2><div id="anTop"></div></div>
+    <div class="panel"><h2>Needs follow-up</h2><div class="msg" style="padding-top:0">Came before, but missed the latest 3 events.</div><div id="anFollow"></div></div>
+  </div>
+  <div class="panel"><h2>Event by event</h2><div class="scroll"><table id="anTable"></table></div></div>
+</section>
 <section class="hide" id="tab-qr">
   <div class="head"><span class="msg">Print each QR code once and reuse it. It always opens check-in for the latest event connected to it that you opened.</span><button class="primary" id="newQr">+ New QR code</button></div>
   <div class="grid2" id="qrCards"></div>
@@ -314,7 +333,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Special Events'];  // add or rename event types here
-let editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -568,14 +587,83 @@ $('edSave').onclick=()=>{
 };
 $('evSearch').oninput=()=>render();$('evFilter').onchange=()=>render();
 
+// ---- analytics ----
+const normName=n=>String(n||'').toLowerCase().replace(/\s+/g,' ').trim();
+const PAL={Member:'#e0a800',Visitor:'#2f7fc0','Regular Visitor':'#3a9a85',Adult:'#e0a800',Youth:'#d9772b',Kids:'#8a6400'};
+function donut(id,items){
+  const tot=items.reduce((a,i)=>a+i.v,0);
+  if(!tot){$(id).innerHTML='<div class="msg">No data yet.</div>';return}
+  const R=60,r=36,c=70,P=(q,a)=>[c+q*Math.cos(a),c+q*Math.sin(a)];let a=-Math.PI/2,sv='';
+  items.forEach(i=>{
+    if(!i.v)return;const f=i.v/tot,b=a+f*2*Math.PI;
+    if(f>.9999)sv+='<circle cx="'+c+'" cy="'+c+'" r="'+(R+r)/2+'" fill="none" stroke="'+i.c+'" stroke-width="'+(R-r)+'"/>';
+    else{const[x1,y1]=P(R,a),[x2,y2]=P(R,b),[x3,y3]=P(r,b),[x4,y4]=P(r,a),lg=f>.5?1:0;sv+='<path d="M'+x1+' '+y1+'A'+R+' '+R+' 0 '+lg+' 1 '+x2+' '+y2+'L'+x3+' '+y3+'A'+r+' '+r+' 0 '+lg+' 0 '+x4+' '+y4+'Z" fill="'+i.c+'"/>'}
+    a=b;
+  });
+  $(id).innerHTML='<div class="row" style="align-items:center;gap:18px"><svg viewBox="0 0 140 140" width="140" height="140" role="img"><g>'+sv+'</g><text x="70" y="76" text-anchor="middle" font-size="20" font-weight="700" fill="currentColor">'+tot+'</text></svg><div>'+items.map(i=>'<div style="margin:6px 0"><i style="display:inline-block;width:10px;height:10px;border-radius:3px;background:'+i.c+';margin-right:8px"></i>'+esc(i.l)+' <b>'+i.v+'</b> <span class="msg">('+Math.round(i.v/tot*100)+'%)</span></div>').join('')+'</div></div>';
+}
+function lineSvg(rows,avg){
+  if(!rows.length)return '<div class="msg">No data yet. Attendance appears here once people check in.</div>';
+  const W=700,H=230,L=34,B=32,T=14,R=12,n=rows.length,pw=W-L-R,ph=H-T-B,max=Math.max(1,...rows.map(x=>x.v));
+  const X=k=>L+(n===1?pw/2:pw*k/(n-1)),Y=v=>T+ph-ph*v/max;let g='';
+  for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">'+Math.round(max*k/4)+'</text>'}
+  g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(avg)+'" y2="'+Y(avg)+'" stroke="#8a6400" stroke-dasharray="5 4"/><text x="'+(W-R)+'" y="'+(Y(avg)-5)+'" text-anchor="end" font-size="11" fill="#8a6400">average '+Math.round(avg*10)/10+'</text>';
+  g+='<polyline fill="none" stroke="#e0a800" stroke-width="3" stroke-linejoin="round" points="'+rows.map((x,k)=>X(k)+','+Y(x.v)).join(' ')+'"/>';
+  rows.forEach((x,k)=>{g+='<circle cx="'+X(k)+'" cy="'+Y(x.v)+'" r="4.5" fill="#e0a800" stroke="#fff" stroke-width="1.5"/><text x="'+X(k)+'" y="'+(Y(x.v)-9)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+x.v+'</text>';if(n<=14||k%Math.ceil(n/12)===0)g+='<text x="'+X(k)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.l||'').slice(5)||'?')+'</text>'});
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance over time">'+g+'</svg>';
+}
+function anData(){
+  const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))],hasSem=EVENTS.some(e=>e.group==='Seminars');
+  if(document.activeElement!==$('anKind')){$('anKind').innerHTML='<option value="">All event types</option>'+(hasSem?'<option value="group:Seminars">All seminars</option>':'')+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('anKind').value=(kinds.includes(anKind)||(hasSem&&anKind==='group:Seminars'))?anKind:''}
+  const cut=+anRange?new Date(Date.now()-anRange*864e5).toISOString().slice(0,10):'';
+  const set=EVENTS.filter(e=>(e.people||[]).length>0&&(!anKind||e.kind===anKind||anKind==='group:'+(e.group||'x'))&&(!cut||(e.date||'')>=cut))
+    .sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))||(a.created||0)-(b.created||0));
+  const ppl={};
+  set.forEach(e=>(e.people||[]).forEach(p=>{const k=normName(p.name),x=ppl[k]=ppl[k]||{name:p.name.trim(),ev:new Set(),last:'',vis:false};x.ev.add(e.id);if((e.date||'')>=x.last)x.last=e.date||'';if(p.type!=='Member')x.vis=true}));
+  return{set,ppl:Object.values(ppl)};
+}
+function renderAn(){
+  const{set,ppl}=anData(),n=set.length,sizes=set.map(e=>e.people.length),tot=sizes.reduce((a,b)=>a+b,0),avg=n?tot/n:0;
+  const uniq=ppl.length,ret=ppl.filter(x=>x.ev.size>=2).length,vis=ppl.filter(x=>x.vis),visRet=vis.filter(x=>x.ev.size>=2).length;
+  const pc=(a,b)=>b?Math.round(a/b*100)+'%':'0%';
+  const card=(v,l,sub)=>'<div class="card"><b>'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
+  $('anCards').innerHTML=card(tot,'Total check-ins',n+' events')+card(Math.round(avg*10)/10,'Average attendance','')+card(Math.max(0,...sizes),'Peak attendance','')+card(uniq,'Unique people','')
+    +card(ret,'Returning people',pc(ret,uniq)+' came 2+ times')+card(vis.length,'Visitors (ever)','')+card(pc(visRet,vis.length),'Visitors who returned',visRet+' of '+vis.length)+card(n?pc(set.filter(e=>(e.people||[]).length>=avg).length,n):'0%','Events at or above average','');
+  $('anLine').innerHTML=lineSvg(set.map(e=>({l:e.date,v:e.people.length})),avg);
+  const all=set.flatMap(e=>e.people),cnt=k=>all.filter(p=>p.type===k||p.demo===k).length;
+  donut('anType',TYPES.map(t=>({l:t,v:cnt(t),c:PAL[t]})));donut('anAge',['Adult','Youth','Kids'].map(t=>({l:t,v:cnt(t),c:PAL[t]})));
+  const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],dw=DN.map(()=>[0,0]);
+  set.forEach(e=>{if(!e.date)return;const d=new Date(e.date+'T00:00:00').getDay();dw[d][0]+=e.people.length;dw[d][1]++});
+  bars('anDow',DN.map((l,i)=>({l,v:dw[i][1]?Math.round(dw[i][0]/dw[i][1]*10)/10:0})).filter((x,i)=>dw[i][1]));
+  const mo={};set.forEach(e=>{const m=(e.date||'').slice(0,7);if(m)mo[m]=(mo[m]||0)+e.people.length});
+  bars('anMonth',Object.keys(mo).sort().slice(-8).map(m=>({l:new Date(m+'-01T00:00:00').toLocaleString('en',{month:'short',year:'numeric'}),v:mo[m]})));
+  const top=[...ppl].sort((a,b)=>b.ev.size-a.ev.size||a.name.localeCompare(b.name)).slice(0,10).filter(x=>x.ev.size>0);
+  fill('anTop',top.map(x=>{const d=document.createElement('div');d.className='ev';const i=document.createElement('div');i.className='info';const b=document.createElement('b');b.textContent=x.name;const m=document.createElement('small');m.textContent=x.ev.size+' of '+n+' events · last seen '+(x.last||'-');i.append(b,m);d.append(i);return d}),'No data yet.');
+  const recent=new Set(set.slice(-3).map(e=>e.id));
+  const fol=n>=4?ppl.filter(x=>x.ev.size>=2&&![...x.ev].some(id=>recent.has(id))).sort((a,b)=>b.ev.size-a.ev.size).slice(0,10):[];
+  fill('anFollow',fol.map(x=>{const d=document.createElement('div');d.className='ev';const i=document.createElement('div');i.className='info';const b=document.createElement('b');b.textContent=x.name;const m=document.createElement('small');m.textContent='came '+x.ev.size+' times · last seen '+(x.last||'-');i.append(b,m);d.append(i);return d}),n>=4?'Everyone who attended regularly is still coming.':'Needs at least 4 events to compare.');
+  $('anTable').innerHTML='<tr><th>Date</th><th>Event</th><th class="n">Total</th><th class="n">Members</th><th class="n">Visitors</th><th class="n">Regular</th><th class="n">Adult</th><th class="n">Youth</th><th class="n">Kids</th></tr>'
+    +[...set].reverse().slice(0,60).map(e=>{const c=counts(e);return '<tr><td>'+esc(e.date||'')+'</td><td>'+esc(e.name)+'</td><td class="n"><b>'+e.people.length+'</b></td><td class="n">'+c.Member+'</td><td class="n">'+c.Visitor+'</td><td class="n">'+c['Regular Visitor']+'</td><td class="n">'+c.Adult+'</td><td class="n">'+c.Youth+'</td><td class="n">'+c.Kids+'</td></tr>'}).join('');
+}
+$('anKind').onchange=e=>{anKind=e.target.value;renderAn()};
+$('anRange').onchange=e=>{anRange=e.target.value;renderAn()};
+$('anXlsx').onclick=()=>{
+  if(typeof XLSX==='undefined')return alert('The Excel library could not load. Check your internet connection and try again.');
+  const{set,ppl}=anData(),wb=XLSX.utils.book_new();
+  const ev=[['Date','Time','Event','Total','Members','Visitors','Regular visitors','Adult','Youth','Kids'],...set.map(e=>{const c=counts(e);return[e.date||'',fmtTime(e.time),e.name,e.people.length,c.Member,c.Visitor,c['Regular Visitor'],c.Adult,c.Youth,c.Kids]})];
+  const pp=[['Name','Times attended','Last seen','Ever a visitor'],...[...ppl].sort((a,b)=>b.ev.size-a.ev.size).map(x=>[x.name,x.ev.size,x.last,x.vis?'Yes':'No'])];
+  const a=XLSX.utils.aoa_to_sheet(ev),b=XLSX.utils.aoa_to_sheet(pp);a['!cols']=[{wch:12},{wch:10},{wch:30},{wch:8},{wch:9},{wch:9},{wch:16},{wch:8},{wch:8},{wch:8}];b['!cols']=[{wch:30},{wch:14},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,a,'By event');XLSX.utils.book_append_sheet(wb,b,'People');XLSX.writeFile(wb,'attendance-analytics.xlsx');
+};
+
 // ---- dashboard ----
 let tab='dash';
-const TITLES={dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
+const TITLES={an:'Analytics',dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function bars(id,items){const max=Math.max(1,...items.map(i=>i.v));$(id).innerHTML=items.length?items.map(i=>'<div class="bar-row"><span class="bl" title="'+esc(i.l)+'">'+esc(i.l)+'</span><span class="bt"><i style="width:'+Math.round(i.v/max*100)+'%"></i></span><b>'+i.v+'</b></div>').join(''):'<div class="msg">No data yet.</div>'}
 function applyTab(){
   $('pageTitle').textContent=TITLES[tab];
-  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');
+  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');$('tab-an').classList.toggle('hide',tab!=='an');
   [...$('tabs').children].forEach(b=>b.classList.toggle('act',b.dataset.tab===tab));
 }
 function showTab(t){tab=t;applyTab();render();window.scrollTo(0,0)}
@@ -666,7 +754,7 @@ function renderSaved(){
 function render(){
   const admin=role==='admin';
   $('norole').classList.toggle('hide',!!role);
-  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr'].forEach(i=>$(i).classList.add('hide'));return}
+  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr','tab-an'].forEach(i=>$(i).classList.add('hide'));return}
   $('tabs').classList.remove('hide');applyTab();autoLink();
   if(!admin){
     const cur=E();if(cur&&cur.done)curId=null;
@@ -674,7 +762,7 @@ function render(){
     if(!curId&&open.length===1)curId=open[0].id;
   }
   const ev=E();
-  renderSaved();renderDash();if(tab==='qr')renderQr();
+  renderSaved();renderDash();if(tab==='qr')renderQr();if(tab==='an')renderAn();
   if(editId&&!EVENTS.find(x=>x.id===editId))editId=null;
   $('editPanel').classList.toggle('hide',!editId);
   $('setup').classList.toggle('hide',!!ev||!admin);$('live').classList.toggle('hide',!ev);
