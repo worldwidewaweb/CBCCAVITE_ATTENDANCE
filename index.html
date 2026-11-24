@@ -99,6 +99,11 @@ button.primary:hover{filter:brightness(.95)}
 .tag.st-done{background:var(--bluebg);color:var(--blue)}
 .card{border-top:3px solid var(--gold)}
 select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;width:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-bottom:6px}.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+.card small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}
+.ev .acts{display:flex;gap:6px;flex-wrap:wrap;width:100%}.ev{align-items:flex-start}
+button.sm{padding:6px 11px;font-size:.85rem}
+.up{color:var(--green)}.down{color:var(--red)}
 </style>
 </head>
 <body>
@@ -132,21 +137,33 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 
 
 <section id="tab-dash">
-  <div class="head"><span class="msg">All events at a glance</span><button class="primary" id="dashNew">+ New event</button></div>
+  <div class="head"><div class="row" style="gap:8px;flex:1"><select id="dKind" style="max-width:230px"></select><select id="dRange" style="max-width:170px"><option value="8">Last 8 events</option><option value="12">Last 12 events</option><option value="0">All time</option></select></div><button class="primary" id="dashNew">+ New event</button></div>
   <div class="cards" id="dashCards"></div>
+  <div class="panel"><h2>Attendance trend</h2>
+    <div class="legend"><span><i style="background:#e0a800"></i>Members</span><span><i style="background:#2f7fc0"></i>Visitors</span><span><i style="background:#3a9a85"></i>Regular visitors</span></div>
+    <div id="chTrend"></div></div>
   <div class="grid2">
     <div class="panel"><h2>Check-ins by type</h2><div id="chType"></div></div>
     <div class="panel"><h2>Check-ins by age group</h2><div id="chAge"></div></div>
   </div>
-  <div class="panel"><h2>Check-ins per event (latest 6)</h2><div id="chEvents"></div></div>
   <div class="grid2">
+    <div class="panel"><h2>Top inviters</h2><div id="chInv"></div></div>
     <div class="panel"><h2>Open for check-in now</h2><div id="dashOpen"></div></div>
-    <div class="panel"><h2>Upcoming planned events</h2><div id="dashPlanned"></div></div>
   </div>
-  <div class="panel"><h2>Recent check-ins</h2><div id="dashRecent"></div></div>
+  <div class="grid2">
+    <div class="panel"><h2>Upcoming planned events</h2><div id="dashPlanned"></div></div>
+    <div class="panel"><h2>Recent check-ins</h2><div id="dashRecent"></div></div>
+  </div>
 </section>
 
 <div id="tab-events" class="hide">
+<section class="panel hide" id="editPanel">
+  <h2>Edit event</h2>
+  <label>Event type<select id="edKind"></select></label>
+  <label>Event name<input id="edName"></label>
+  <div class="row"><label>Date<input id="edDate" type="date"></label><label>Time<input id="edTime" type="time"></label></div>
+  <div class="row"><button class="primary" id="edSave">Save changes</button><button id="edCancel">Cancel</button></div>
+</section>
 
 <section class="panel" id="setup">
   <h2>Event details</h2>
@@ -163,13 +180,14 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 </section>
 
 <section class="panel hide" id="savedPanel">
-  <h2 id="savedTitle">Saved events</h2>
+  <h2 id="savedTitle">Manage events</h2>
+  <div class="row" style="margin-bottom:10px"><input id="evSearch" placeholder="Search by name, date or type" style="flex:2;min-width:170px"><select id="evFilter" style="flex:1;min-width:130px"><option value="">All statuses</option><option value="open">Open</option><option value="planned">Planned</option><option value="done">Finished</option></select></div>
   <div id="savedList"></div>
 </section>
 
 <div id="live" class="hide">
   <section class="panel">
-    <div class="head"><h2 id="evtitle" style="margin:0"></h2><span id="evwhen" class="msg"></span><button id="back" class="noprint">All events</button></div>
+    <div class="head"><h2 id="evtitle" style="margin:0"></h2><span id="evwhen" class="msg"></span><button id="editEv" class="noprint">Edit</button><button id="back" class="noprint">All events</button></div>
     <div id="checkin">
       <label>Name<input id="name" autocomplete="off" placeholder="Full name"></label>
       <div class="lbl">Type</div>
@@ -286,7 +304,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Other'];  // add or rename event types here
-let serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -468,6 +486,25 @@ function renderQr(){
 }
 window.addEventListener('afterprint',()=>document.body.classList.remove('pp'));
 
+// ---- edit / manage ----
+function openEdit(ev){
+  if(!ev)return;editId=ev.id;
+  const kinds=[...TEMPLATES];if(ev.kind&&!kinds.includes(ev.kind))kinds.push(ev.kind);
+  $('edKind').innerHTML=kinds.map(k=>'<option>'+esc(k)+'</option>').join('');
+  $('edKind').value=ev.kind||'Other';$('edName').value=ev.name;$('edDate').value=ev.date||'';$('edTime').value=ev.time||'';
+  tab='events';render();window.scrollTo(0,0);$('edName').focus();
+}
+$('editEv').onclick=()=>openEdit(E());
+$('edCancel').onclick=()=>{editId=null;render()};
+$('edSave').onclick=()=>{
+  const name=$('edName').value.trim();if(!name){$('edName').focus();return}
+  const id=editId,d={kind:$('edKind').value,name,date:$('edDate').value,time:$('edTime').value},b=db.batch();
+  b.update(db.collection('events').doc(id),d);
+  b.set(db.collection('pub').doc(id),{name,date:d.date,time:d.time},{merge:true});
+  editId=null;guard(b.commit());render();
+};
+$('evSearch').oninput=()=>render();$('evFilter').onchange=()=>render();
+
 // ---- dashboard ----
 let tab='dash';
 const TITLES={dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
@@ -489,21 +526,49 @@ function evRow(ev,sub){
   const o=document.createElement('button');o.textContent='Open';o.onclick=()=>openEv(ev);r.append(i,o);return r;
 }
 function fill(id,rows,empty){const box=$(id);box.innerHTML='';if(!rows.length){box.innerHTML='<div class="msg">'+empty+'</div>';return}rows.forEach(r=>box.append(r))}
+function trendSvg(list){
+  if(!list.length)return '<div class="msg">No data yet. Attendance appears here once people check in.</div>';
+  const W=700,H=240,L=34,B=34,T=16,R=8,n=list.length,step=(W-L-R)/n,bw=Math.min(54,step*.7),ph=H-T-B;
+  const rows=list.map(e=>{const c=counts(e);return{e,m:c.Member,v:c.Visitor,r:c['Regular Visitor']}});
+  const max=Math.max(1,...rows.map(x=>x.m+x.v+x.r));let g='';
+  for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">'+Math.round(max*k/4)+'</text>'}
+  rows.forEach((x,k)=>{
+    const cx=L+step*k+step/2,tot=x.m+x.v+x.r;let y=T+ph;
+    [[x.m,'#e0a800'],[x.v,'#2f7fc0'],[x.r,'#3a9a85']].forEach(([val,col])=>{const h=ph*val/max;y-=h;if(h)g+='<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+h+'" fill="'+col+'" rx="2"/>'});
+    g+='<text x="'+cx+'" y="'+(y-5)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+tot+'</text><text x="'+cx+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.e.date||'').slice(5)||'?')+'</text>';
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance per event">'+g+'</svg>';
+}
 function renderDash(){
   const open=EVENTS.filter(e=>stateOf(e)==='open'),planned=EVENTS.filter(e=>stateOf(e)==='planned');
-  const all=EVENTS.flatMap(e=>(e.people||[]).map(p=>({...p,ev:e})));
+  // filters
+  const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))];
+  if(document.activeElement!==$('dKind')){$('dKind').innerHTML='<option value="">All event types</option>'+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('dKind').value=kinds.includes(dashKind)?dashKind:''}
+  let set=EVENTS.filter(e=>(e.people||[]).length>0&&(!dashKind||e.kind===dashKind)).sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))||(a.created||0)-(b.created||0));
+  if(+dashRange)set=set.slice(-(+dashRange));
+  const all=set.flatMap(e=>(e.people||[]).map(p=>({...p,ev:e})));
   const AGES=['Adult','Youth','Kids'],cnt=k=>all.filter(p=>p.type===k||p.demo===k).length;
-  const card=(n,l)=>'<div class="card"><b>'+n+'</b><span>'+l+'</span></div>';
-  $('dashCards').innerHTML=card(EVENTS.length,'Events')+card(open.length,'Open now')+card(planned.length,'Planned')+card(all.length,'Total check-ins');
+  const tot=all.length,n=set.length,avg=n?Math.round(tot/n*10)/10:0;
+  const sizes=set.map(e=>(e.people||[]).length),bestN=Math.max(0,...sizes),best=set[sizes.indexOf(bestN)];
+  let delta='n/a',dsub='needs 2 events',dcls='';
+  if(n>=2&&sizes[n-2]>0){const d=Math.round((sizes[n-1]-sizes[n-2])/sizes[n-2]*100);delta=(d>=0?'▲ ':'▼ ')+Math.abs(d)+'%';dcls=d>=0?'up':'down';dsub=sizes[n-1]+' vs '+sizes[n-2]+' last time'}
+  const vis=all.filter(p=>p.type!=='Member').length,vshare=tot?Math.round(vis/tot*100):0;
+  const card=(v,l,sub,c)=>'<div class="card"><b class="'+(c||'')+'">'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
+  $('dashCards').innerHTML=card(tot,'Total check-ins',n+' events')+card(avg,'Average per event','')+card(bestN,'Best attendance',best?best.name+' '+(best.date||''):'')+card(delta,'Latest vs previous',dsub,dcls)+card(vshare+'%','Visitor share',vis+' visitors')+card(open.length+' / '+planned.length,'Open / planned','events');
+  $('chTrend').innerHTML=trendSvg(set);
   bars('chType',TYPES.map(t=>({l:t,v:cnt(t)})));bars('chAge',AGES.map(t=>({l:t,v:cnt(t)})));
-  bars('chEvents',EVENTS.slice(-6).map(e=>({l:e.name+(e.date?' ('+e.date+')':''),v:(e.people||[]).length})));
+  const inv={};all.filter(p=>p.type!=='Member'&&p.inv).forEach(p=>{const k=p.inv.trim().toLowerCase();(inv[k]=inv[k]||{l:p.inv.trim(),v:0}).v++});
+  bars('chInv',Object.values(inv).sort((a,b)=>b.v-a.v).slice(0,8));
   fill('dashOpen',open.map(e=>evRow(e,[e.date,fmtTime(e.time),(e.people||[]).length+' checked in'].filter(Boolean).join(' · '))),'No event is open for check-in.');
   fill('dashPlanned',planned.sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(e=>evRow(e,[e.date,fmtTime(e.time)].filter(Boolean).join(' at '))),'No planned events.');
-  fill('dashRecent',all.sort((a,b)=>(b.t||0)-(a.t||0)).slice(0,8).map(p=>{
+  const every=EVENTS.flatMap(e=>(e.people||[]).map(p=>({...p,ev:e})));
+  fill('dashRecent',every.sort((a,b)=>(b.t||0)-(a.t||0)).slice(0,8).map(p=>{
     const d=document.createElement('div');d.className='ev';const i=document.createElement('div');i.className='info';
     const b=document.createElement('b');b.textContent=p.name;const m=document.createElement('small');m.textContent=p.type+' · '+p.demo+' · '+p.ev.name;i.append(b,m);d.append(i);return d;
   }),'No check-ins yet.');
 }
+$('dKind').onchange=e=>{dashKind=e.target.value;renderDash()};
+$('dRange').onchange=e=>{dashRange=e.target.value;renderDash()};
 
 // ---- rendering ----
 function counts(ev){const c={Adult:0,Youth:0,Kids:0,Member:0,Visitor:0,'Regular Visitor':0};people(ev).forEach(p=>{c[p.demo]++;c[p.type]++});return c}
@@ -515,21 +580,23 @@ function matrix(ev){
 }
 function renderSaved(){
   const box=$('savedList');box.innerHTML='';
-  const admin=role==='admin';
-  const shown=[...EVENTS].reverse().filter(ev=>admin||!ev.done);
-  $('savedPanel').classList.toggle('hide',!shown.length||!!E()||!role);
-  $('savedTitle').textContent=admin?'Saved events':'Events open for check-in';
-  $('adminTools').classList.toggle('hide',!admin);
+  const q=($('evSearch').value||'').toLowerCase(),f=$('evFilter').value;
+  $('savedPanel').classList.toggle('hide',!EVENTS.length||!!E()||!role);
+  $('adminTools').classList.remove('hide');
+  const shown=[...EVENTS].reverse().filter(ev=>(!f||stateOf(ev)===f)&&(!q||(ev.name+' '+(ev.date||'')+' '+(ev.kind||'')).toLowerCase().includes(q)));
+  if(!shown.length)box.innerHTML='<div class="msg">No events match.</div>';
   shown.forEach(ev=>{
-    const r=document.createElement('div');r.className='ev';
+    const st=stateOf(ev),r=document.createElement('div');r.className='ev';
     const i=document.createElement('div');i.className='info';
     const b=document.createElement('b');b.textContent=ev.name;
-    const sm=document.createElement('small');sm.textContent=[ev.date,fmtTime(ev.time),(ev.people||[]).length+' people',({done:'Finished',open:'Open for check-in',planned:'Planned'})[stateOf(ev)]].filter(Boolean).join(' · ');
+    const tg=document.createElement('span');tg.className='tag st-'+st;tg.style.marginLeft='8px';tg.textContent={done:'Finished',open:'Open',planned:'Planned'}[st];b.append(tg);
+    const sm=document.createElement('small');sm.textContent=[ev.date,fmtTime(ev.time),(ev.people||[]).length+' people'].filter(Boolean).join(' · ');
     i.append(b,sm);
-    const o=document.createElement('button');o.textContent='Open';o.onclick=()=>{curId=ev.id;render();window.scrollTo(0,0)};
-    const d=document.createElement('button');d.className='danger';d.textContent='Delete';
-    d.onclick=()=>{if(confirm('Delete "'+ev.name+'" and its '+(ev.people||[]).length+' check-ins for everyone? This cannot be undone.')){const b=db.batch();b.delete(db.collection('events').doc(ev.id));b.delete(db.collection('pub').doc(ev.id));guard(b.commit())}};
-    r.append(i,o);if(admin)r.append(d);box.append(r);
+    const acts=document.createElement('div');acts.className='acts';
+    const mk=(t,fn,c)=>{const x=document.createElement('button');x.className='sm'+(c?' '+c:'');x.textContent=t;x.onclick=fn;return x};
+    acts.append(mk('Open',()=>{curId=ev.id;render();window.scrollTo(0,0)}),mk('Edit',()=>openEdit(ev)),mk('PDF',()=>doPdf(ev)),mk('Excel',()=>doXlsx(ev)),
+      mk('Delete',()=>{if(confirm('Delete "'+ev.name+'" and its '+(ev.people||[]).length+' check-ins for everyone? This cannot be undone.')){const b2=db.batch();b2.delete(db.collection('events').doc(ev.id));b2.delete(db.collection('pub').doc(ev.id));guard(b2.commit())}},'danger'));
+    r.append(i,acts);box.append(r);
   });
 }
 function render(){
@@ -544,6 +611,8 @@ function render(){
   }
   const ev=E();
   renderSaved();renderDash();if(tab==='qr')renderQr();
+  if(editId&&!EVENTS.find(x=>x.id===editId))editId=null;
+  $('editPanel').classList.toggle('hide',!editId);
   $('setup').classList.toggle('hide',!!ev||!admin);$('live').classList.toggle('hide',!ev);
   if(!ev)return;
   $('overview').classList.toggle('hide',!admin);$('finishPanel').classList.toggle('hide',!admin);
@@ -588,29 +657,31 @@ function render(){
 }
 
 // ---- exports ----
-const fname=ext=>{const ev=E();return 'attendance-'+ev.name.replace(/[^\w\-]+/g,'_')+'-'+(ev.date||'event')+'.'+ext};
+const fname=(ext,ev=E())=>{return 'attendance-'+ev.name.replace(/[^\w\-]+/g,'_')+'-'+(ev.date||'event')+'.'+ext};
 const listRows=ev=>people(ev).map((p,i)=>[i+1,p.name,p.type,p.inv||'',p.demo]);
 const sumRows=ev=>{const{m,tot}=matrix(ev);return[...TYPES.map(t=>[t,m[t].Adult,m[t].Youth,m[t].Kids,m[t].Total]),['Total',tot.Adult,tot.Youth,tot.Kids,tot.Total]]};
-$('xlsx').onclick=()=>{
+const doXlsx=ev=>{
   if(typeof XLSX==='undefined')return alert('The Excel library could not load. Check your internet connection and try again.');
-  const ev=E(),wb=XLSX.utils.book_new();
+  const wb=XLSX.utils.book_new();
   const a=XLSX.utils.aoa_to_sheet([[ev.name],['Date',ev.date],['Time',fmtTime(ev.time)],[],['No.','Name','Type','Invited by','Age group'],...listRows(ev)]);
   a['!cols']=[{wch:6},{wch:30},{wch:16},{wch:26},{wch:12}];
   const s=XLSX.utils.aoa_to_sheet([[ev.name],[],['Type','Adult','Youth','Kids','Total'],...sumRows(ev)]);
   s['!cols']=[{wch:18},{wch:8},{wch:8},{wch:8},{wch:8}];
   XLSX.utils.book_append_sheet(wb,a,'Attendance');XLSX.utils.book_append_sheet(wb,s,'Summary');
-  XLSX.writeFile(wb,fname('xlsx'));
+  XLSX.writeFile(wb,fname('xlsx',ev));
 };
-$('pdf').onclick=()=>{
+$('xlsx').onclick=()=>doXlsx(E());
+const doPdf=ev=>{
   if(!(window.jspdf&&window.jspdf.jsPDF))return alert('The PDF library could not load. Check your internet connection and try again.');
-  const ev=E(),d=new window.jspdf.jsPDF();
+  const d=new window.jspdf.jsPDF();
   d.setFontSize(18);d.text(ev.name,14,18);d.setFontSize(11);
   d.text('Date: '+(ev.date||'-')+'     Time: '+(fmtTime(ev.time)||'-'),14,26);
   d.autoTable({startY:32,head:[['Type','Adult','Youth','Kids','Total']],body:sumRows(ev),headStyles:{fillColor:[31,78,61]},
     didParseCell:h=>{if(h.row.index===3&&h.section==='body')h.cell.styles.fontStyle='bold'}});
   d.autoTable({startY:d.lastAutoTable.finalY+8,head:[['No.','Name','Type','Invited by','Age group']],body:listRows(ev),headStyles:{fillColor:[31,78,61]}});
-  d.save(fname('pdf'));
+  d.save(fname('pdf',ev));
 };
+$('pdf').onclick=()=>doPdf(E());
 function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove()}
 $('csv').onclick=()=>{
   const ev=E(),q=v=>'"'+String(v).replace(/"/g,'""')+'"';
