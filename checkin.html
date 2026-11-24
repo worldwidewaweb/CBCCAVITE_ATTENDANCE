@@ -76,6 +76,7 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,
 </div>
 
 <section class="panel hide" id="form">
+  <input id="hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;opacity:0">
   <label>Name<input id="name" autocomplete="off" placeholder="Full name"></label>
   <div class="lbl">Member or Visitor?</div>
   <div class="choices" id="typeBtns">
@@ -88,6 +89,7 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,
   </div>
   <div class="err" id="err"></div>
   <button class="primary" id="submit">Check in</button>
+  <p class="msg" style="font-size:.8rem;margin:10px 0 0">Your details are used only for this church's attendance records.</p>
 </section>
 </main>
 
@@ -101,7 +103,7 @@ const firebaseConfig = {
   appId: "1:10719951786:web:cce48f77701a8c86cb49d3"
 };
 const $=id=>document.getElementById(id);
-let db,OPEN=null,type='',demo='',busy=false;
+let db,OPEN=null,type='',demo='',busy=false,dupOK='';
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function fmtTime(t){if(!t)return'';const[h,m]=t.split(':').map(Number);return(h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')}
 function pick(g,b){[...g.children].forEach(x=>x.classList.toggle('on',x===b))}
@@ -138,17 +140,21 @@ $('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('submit').click()}
 
 $('submit').onclick=async()=>{
   if(busy||!OPEN||OPEN.state!=='open')return;
-  const n=$('name').value.trim().slice(0,80);
+  const n=$('name').value.replace(/\s+/g,' ').trim().slice(0,80);
   if(!n)return err('Please enter your name.');
   if(!type)return err('Please choose Member, Visitor, or Regular Visitor.');
   if(!demo)return err('Please choose Adult, Youth, or Kids.');
   const inv=$('inv').value.trim().slice(0,80);
   if(type!=='Member'&&!inv){$('inv').focus();return err('Please write who invited you.');}
+  if($('hp').value){$('thanksMsg').textContent='Thank you!';$('form').classList.add('hide');$('thanks').classList.remove('hide');return}
+  const nk=n.toLowerCase().replace(/\s+/g,' ');let seen=[];try{seen=JSON.parse(localStorage.getItem('cbc-ci-'+eid)||'[]')}catch(e){}
+  if(seen.includes(nk)&&dupOK!==nk){dupOK=nk;return err('This name was already checked in from this phone. Press Check in again only if you want to add it again.')}
   err('');busy=true;$('submit').disabled=true;$('submit').textContent='Saving…';
   const p={id:uid(),name:n,type,inv:type==='Member'?'':inv,demo,t:Date.now()};
   const ref=db.collection('events').doc(eid),add=()=>ref.update({people:firebase.firestore.FieldValue.arrayUnion(p)});
   try{
     try{await add()}catch(e){await new Promise(r=>setTimeout(r,600));await add()}
+    try{seen.push(nk);localStorage.setItem('cbc-ci-'+eid,JSON.stringify(seen.slice(-40)))}catch(e){}
     $('thanksMsg').textContent='Thank you, '+n+'! You are checked in.';
     $('form').classList.add('hide');$('thanks').classList.remove('hide');
   }catch(e){
