@@ -48,6 +48,26 @@ button.primary:hover{filter:brightness(.95)}
 .hero h1{color:#1c1a14}.hero .when{color:#4b3f12}.hero .venue{color:#4b3f12}
 .hero .tagline{color:#8a6400;opacity:1;font-weight:700}
 @media (prefers-color-scheme:dark){.hero{background:linear-gradient(135deg,#3a3010 0%,#5a4608 70%,var(--accent) 200%);color:#f3eee0}.hero h1{color:#fff}.hero .when,.hero .venue{color:#f3eee0}.hero .tagline{color:#f0c53d}}
+
+/* ---- polish ---- */
+body{background:radial-gradient(800px 380px at 90% -10%,rgba(224,168,0,.18),transparent 60%),var(--bg);background-attachment:fixed}
+.panel{border-radius:16px;box-shadow:0 1px 2px rgba(60,40,0,.05),0 10px 26px rgba(60,40,0,.07)}
+button{transition:background .18s,border-color .18s,transform .12s,box-shadow .18s}
+button:active{transform:scale(.97)}
+button.primary{background:linear-gradient(180deg,#efbb1c,#d99f00);border-color:#c99300;box-shadow:0 2px 8px rgba(224,168,0,.35)}
+.choices button.on{transform:scale(1.03);box-shadow:0 6px 16px rgba(224,168,0,.38)}
+input{transition:border-color .15s,box-shadow .15s}
+input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,168,0,.3)}
+.ok{display:flex;align-items:center;gap:14px;border-radius:16px}
+.ok::before{content:"\2713";flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--gold);color:#1c1a14;font-size:1.5rem}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:no-preference){
+.panel,.ok,.hero{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.ok::before{animation:pop .55s cubic-bezier(.3,1.6,.5,1) .15s both}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (pointer:coarse){.choices button,button.primary,input{min-height:50px}}
 </style>
 </head>
 <body>
@@ -127,7 +147,7 @@ try{
   if(/^[A-Za-z0-9]{10,40}$/.test(eid))watch(eid);
   else if(/^[a-z0-9-]{3,40}$/.test(sKey))db.collection('series').doc(sKey).onSnapshot(d=>{
     if(d.exists&&d.data().eventId&&/^[A-Za-z0-9]{10,40}$/.test(d.data().eventId)){if(d.data().eventId!==eid)watch(d.data().eventId)}
-    else{OPEN=null;show()}
+    else{if(unsubPub){unsubPub();unsubPub=null}eid='';OPEN=null;show()}
   },bad);
   else show();
 }catch(e){$('loading').textContent='Could not load. Check your internet connection and reload.'}
