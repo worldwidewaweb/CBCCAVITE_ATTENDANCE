@@ -211,7 +211,7 @@ button.sm{padding:6px 11px;font-size:.85rem}
     <label style="margin:0 0 10px">QR code for this event
       <span class="row" style="flex-wrap:nowrap"><select id="evQr" style="flex:1"></select><button id="evQrSave">Save</button></span>
     </label>
-    <label style="margin:0 0 10px">Separate page for this event (optional, used only with its own QR code)
+    <label id="pageWrap" class="hide" style="margin:0 0 10px">Separate page for this event (optional, used only with its own QR code)
       <span class="row" style="flex-wrap:nowrap"><input id="pageEdit" placeholder="e.g. special-event.html" style="flex:1"><button id="pageSave">Save page</button></span>
     </label>
     <div class="row"><input id="linkUrl" readonly style="flex:1;min-width:200px"><button id="copyLink">Copy link</button></div>
@@ -304,7 +304,7 @@ const firebaseConfig = {
 // --------------------------------------------------------
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
-const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Other'];  // add or rename event types here
+const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Special Events'];  // add or rename event types here
 let editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -355,13 +355,14 @@ const guard=p=>p.catch(e=>alert('Could not save: '+e.message));
 
 // ---- event type choices ----
 let grp='';
-const SEMINARS=['Spiritual Formation Seminar (SFS)','Spiritual Maturity Seminar (SMS)','Discover My Ministry Seminar (DMS)'];
+const SEMINARS=['Spiritual Formation Seminar','Spiritual Maturity Seminar','Discover My Ministry Seminar'];
 TEMPLATES.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.dataset.v=t;$('tplBtns').append(b)});
 SEMINARS.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.dataset.v=t;$('semBtns').append(b)});
-const formIds=['enameWrap','epageWrap','eqrWrap','start','plan'];
-function hideForm(){formIds.forEach(i=>$(i).classList.add('hide'))}
-function showForm(name,key){
+const formIds=['enameWrap','eqrWrap','start','plan'];
+function hideForm(){formIds.forEach(i=>$(i).classList.add('hide'));$('epageWrap').classList.add('hide')}
+function showForm(name,key,special){
   formIds.forEach(i=>$(i).classList.remove('hide'));
+  $('epageWrap').classList.toggle('hide',!special);if(!special)$('epage').value='';
   fillQrSelect($('eqr'));$('eqr').value=key;$('ename').value=name;$('ename').focus();
   $('ename').setSelectionRange(name.length,name.length);
 }
@@ -370,7 +371,7 @@ $('tplBtns').onclick=e=>{
   pick($('tplBtns'),b);pick($('semBtns'),null);grp='';
   if(b.dataset.v==='Seminars'){tpl='';$('semLbl').classList.remove('hide');$('semBtns').classList.remove('hide');hideForm();return}
   $('semLbl').classList.add('hide');$('semBtns').classList.add('hide');
-  tpl=b.dataset.v;showForm(tpl==='Other'?'':tpl,seriesKey(tpl));
+  tpl=b.dataset.v;showForm(tpl==='Special Events'?'':tpl,seriesKey(tpl),tpl==='Special Events');
 };
 $('semBtns').onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -394,7 +395,7 @@ function cleanPage(v){
 function createEvent(openNow){
   const name=$('ename').value.trim();
   if(!name){$('ename').focus();return}
-  const page=cleanPage($('epage').value);
+  const page=tpl==='Special Events'?cleanPage($('epage').value):'';
   if(page===null){$('epage').focus();return}
   const qr=$('eqr').value,kind=tpl,group=grp,date=$('edate').value,time=$('etime').value;
   const ref=db.collection('events').doc();
@@ -457,7 +458,7 @@ function printPoster(title,when,url){
   drawQR($('posterQr'),url);document.body.classList.add('pp');window.print();
 }
 $('printQr').onclick=()=>{const ev=E();if(ev)printPoster(ev.name,[ev.date,fmtTime(ev.time)].filter(Boolean).join(' at '),linkOf(ev))};
-const BASE_SERIES=TEMPLATES.filter(t=>t!=='Other').map(n=>({key:n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:n}));
+const BASE_SERIES=TEMPLATES.filter(t=>t!=='Special Events').map(n=>({key:n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),name:n}));
 const allSeries=()=>{const m=[...BASE_SERIES];Object.keys(SER).forEach(k=>{if(SER[k].label&&!m.find(x=>x.key===k))m.push({key:k,name:SER[k].label})});return m};
 const seriesKey=kind=>{const x=allSeries().find(v=>v.name===kind);return x?x.key:''};
 const qrOf=ev=>ev.qr!==undefined?ev.qr:seriesKey(ev.kind);
@@ -515,9 +516,9 @@ $('finishAll').onclick=()=>{
 // ---- edit / manage ----
 function openEdit(ev){
   if(!ev)return;editId=ev.id;
-  const kinds=[...TEMPLATES.filter(t=>t!=='Seminars'),...SEMINARS];if(ev.kind&&!kinds.includes(ev.kind))kinds.push(ev.kind);
+  const kinds=[...TEMPLATES.filter(t=>t!=='Seminars'),...SEMINARS];if(ev.kind&&ev.kind!=='Other'&&!kinds.includes(ev.kind))kinds.push(ev.kind);
   $('edKind').innerHTML=kinds.map(k=>'<option>'+esc(k)+'</option>').join('');
-  $('edKind').value=ev.kind||'Other';$('edName').value=ev.name;$('edDate').value=ev.date||'';$('edTime').value=ev.time||'';
+  $('edKind').value=ev.kind==='Other'?'Special Events':(ev.kind||'Special Events');$('edName').value=ev.name;$('edDate').value=ev.date||'';$('edTime').value=ev.time||'';
   tab='events';render();window.scrollTo(0,0);$('edName').focus();
 }
 $('editEv').onclick=()=>openEdit(E());
@@ -652,6 +653,7 @@ function render(){
   $('linkUrl').value=link;
   if(document.activeElement!==$('evQr')){fillQrSelect($('evQr'));$('evQr').value=qrOf(ev)}
   const qs=allSeries().find(v=>v.key===qrOf(ev));if(qs&&st!=='done')$('linkState').textContent+=' (Permanent QR: '+qs.name+')';
+  $('pageWrap').classList.toggle('hide',!(ev.kind==='Special Events'||ev.kind==='Other'||ev.page));
   if(document.activeElement!==$('pageEdit'))$('pageEdit').value=ev.page||'';
   drawQR($('qr'),link);
   $('back').classList.toggle('hide',!admin&&EVENTS.filter(x=>!x.done).length<=1);
