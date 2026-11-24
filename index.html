@@ -110,6 +110,56 @@ button.sm{padding:6px 11px;font-size:.85rem}
 .mbox h3{margin:0 0 8px;font-size:1.15rem}.mbox p{margin:0 0 14px;color:var(--muted);white-space:pre-line}
 .mact{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 button.dangerfill{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
+
+/* ---- polish: depth, motion and responsiveness ---- */
+body{background:radial-gradient(900px 420px at 88% -8%,rgba(224,168,0,.16),transparent 62%),radial-gradient(700px 380px at -5% 105%,rgba(224,168,0,.09),transparent 60%),var(--bg);background-attachment:fixed}
+.panel{border-radius:14px;box-shadow:0 1px 2px rgba(60,40,0,.05),0 10px 26px rgba(60,40,0,.06);transition:box-shadow .25s}
+@media (hover:hover){.panel:hover{box-shadow:0 2px 4px rgba(60,40,0,.06),0 14px 32px rgba(60,40,0,.11)}}
+.panel>h2{display:flex;align-items:center;gap:8px}.panel>h2::before{content:"";width:4px;height:1.05em;border-radius:3px;background:var(--gold);flex:none}
+.card{border-radius:14px;box-shadow:0 1px 2px rgba(60,40,0,.05),0 8px 20px rgba(60,40,0,.06);transition:transform .2s,box-shadow .2s}
+@media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(60,40,0,.14)}}
+button{transition:background .18s,border-color .18s,transform .12s,box-shadow .18s,filter .18s}
+button:active{transform:scale(.97)}
+@media (hover:hover){button:hover{border-color:var(--gold)}button.primary:hover{box-shadow:0 6px 16px rgba(224,168,0,.4);transform:translateY(-1px)}}
+button.primary{background:linear-gradient(180deg,#efbb1c,#d99f00);border-color:#c99300;box-shadow:0 2px 6px rgba(224,168,0,.3)}
+.choices button.on{transform:scale(1.02);box-shadow:0 6px 16px rgba(224,168,0,.35)}
+.side{background:linear-gradient(180deg,#fff9e0,#fff1bd)}
+.sidenav button{transition:background .18s,color .18s,transform .18s}
+@media (hover:hover){.sidenav button:hover{background:rgba(224,168,0,.2);transform:translateX(3px)}.sidenav button.act:hover{transform:none;background:var(--gold)}}
+.ev{border-radius:10px;padding-left:8px;padding-right:8px;transition:background .15s}.ev:hover{background:rgba(224,168,0,.09)}
+input,select{transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,168,0,.28)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,24px);background:#1c1a14;color:#fff;padding:10px 20px;border-radius:99px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes barUp{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:no-preference){
+.topbar,.cards,.grid2,.head,section>.panel,#tab-events>.panel{animation:rise .45s cubic-bezier(.2,.7,.2,1) both}
+.grid2{animation-delay:.08s}.cards{animation-delay:.04s}
+.bt i{transform-origin:left;animation:grow .8s cubic-bezier(.2,.7,.2,1) both}
+#chTrend rect{transform-box:fill-box;transform-origin:50% 100%;animation:barUp .7s cubic-bezier(.2,.7,.2,1) both}
+.dl{stroke-dasharray:1;animation:draw 1.2s ease-out both}
+#anLine circle{transform-box:fill-box;transform-origin:center;animation:pop .5s .9s both}
+#anType svg g,#anAge svg g{transform-box:fill-box;transform-origin:center;animation:pop .7s cubic-bezier(.2,.7,.2,1) both}
+.modal:not(.hide){animation:fade .18s both}.modal:not(.hide) .mbox{animation:pop .24s cubic-bezier(.2,.9,.3,1.2) both}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:1000px){#app:not(.hide){grid-template-columns:200px minmax(0,1fr);gap:16px}}
+@media (max-width:800px){
+main{padding:12px 12px 72px}
+.side{position:sticky;top:8px;z-index:30;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px;gap:8px;min-height:0}
+.brand{flex:1}.brand small{display:none}
+.user{margin:0;padding:0;display:flex;align-items:center;gap:8px}.user #who{display:none}.user button{margin:0;width:auto;padding:7px 12px}
+.sidenav{order:3;width:100%;flex-direction:row;gap:2px}.sidenav button{flex:1;flex-direction:column;justify-content:center;gap:3px;padding:8px 2px;font-size:.72rem}
+.topbar h2{font-size:1.35rem}.cards{grid-template-columns:repeat(2,1fr)}
+.ev .acts button{flex:1 1 auto}.head{flex-wrap:wrap}
+}
+@media (pointer:coarse){button,select,input{min-height:44px}button.sm{min-height:38px}}
+@media (prefers-color-scheme:dark){.side{background:linear-gradient(180deg,#2d2711,#241f0d)}}
 </style>
 </head>
 <body>
@@ -303,6 +353,7 @@ button.dangerfill{background:var(--red);border-color:var(--red);color:#fff;font-
 </section>
 </div>
 </div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="modal hide" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
   <div class="mbox" id="mBox"><h3 id="mTitle"></h3><p id="mMsg"></p><input id="mInput" class="hide"><div class="mact"><button id="mCancel">Cancel</button><button class="primary" id="mOk">OK</button></div></div>
 </div>
@@ -379,7 +430,18 @@ if(auth)auth.onAuthStateChanged(u=>{
     );
   }).catch(()=>{role='';render()});
 });
-const guard=p=>p.catch(e=>alert('Could not save: '+e.message));
+let toastT;
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1800)}
+const guard=p=>p.then(()=>toast('Saved'),e=>alert('Could not save: '+e.message));
+const prevN={},dn=v=>/^\d+(\.\d+)?$/.test(String(v))?' data-n="'+v+'"':'';
+function animateNums(box){
+  box.querySelectorAll('b[data-n]').forEach(b=>{
+    const key=box.id+'|'+b.parentNode.querySelector('span').textContent,to=+b.dataset.n,from=prevN[key]===undefined?0:prevN[key];prevN[key]=to;
+    if(from===to||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+    const dec=String(to).includes('.'),t0=performance.now();
+    (function step(t){const p=Math.min(1,(t-t0)/700),v=from+(to-from)*(1-Math.pow(1-p,3));b.textContent=p<1?(dec?v.toFixed(1):Math.round(v)):to;if(p<1)requestAnimationFrame(step)})(t0);
+  });
+}
 
 // ---- event type choices ----
 let grp='';
@@ -608,7 +670,7 @@ function lineSvg(rows,avg){
   const X=k=>L+(n===1?pw/2:pw*k/(n-1)),Y=v=>T+ph-ph*v/max;let g='';
   for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">'+Math.round(max*k/4)+'</text>'}
   g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(avg)+'" y2="'+Y(avg)+'" stroke="#8a6400" stroke-dasharray="5 4"/><text x="'+(W-R)+'" y="'+(Y(avg)-5)+'" text-anchor="end" font-size="11" fill="#8a6400">average '+Math.round(avg*10)/10+'</text>';
-  g+='<polyline fill="none" stroke="#e0a800" stroke-width="3" stroke-linejoin="round" points="'+rows.map((x,k)=>X(k)+','+Y(x.v)).join(' ')+'"/>';
+  g+='<polyline class="dl" pathLength="1" fill="none" stroke="#e0a800" stroke-width="3" stroke-linejoin="round" points="'+rows.map((x,k)=>X(k)+','+Y(x.v)).join(' ')+'"/>';
   rows.forEach((x,k)=>{g+='<circle cx="'+X(k)+'" cy="'+Y(x.v)+'" r="4.5" fill="#e0a800" stroke="#fff" stroke-width="1.5"/><text x="'+X(k)+'" y="'+(Y(x.v)-9)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+x.v+'</text>';if(n<=14||k%Math.ceil(n/12)===0)g+='<text x="'+X(k)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.l||'').slice(5)||'?')+'</text>'});
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance over time">'+g+'</svg>';
 }
@@ -626,9 +688,10 @@ function renderAn(){
   const{set,ppl}=anData(),n=set.length,sizes=set.map(e=>e.people.length),tot=sizes.reduce((a,b)=>a+b,0),avg=n?tot/n:0;
   const uniq=ppl.length,ret=ppl.filter(x=>x.ev.size>=2).length,vis=ppl.filter(x=>x.vis),visRet=vis.filter(x=>x.ev.size>=2).length;
   const pc=(a,b)=>b?Math.round(a/b*100)+'%':'0%';
-  const card=(v,l,sub)=>'<div class="card"><b>'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
+  const card=(v,l,sub)=>'<div class="card"><b'+dn(v)+'>'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
   $('anCards').innerHTML=card(tot,'Total check-ins',n+' events')+card(Math.round(avg*10)/10,'Average attendance','')+card(Math.max(0,...sizes),'Peak attendance','')+card(uniq,'Unique people','')
     +card(ret,'Returning people',pc(ret,uniq)+' came 2+ times')+card(vis.length,'Visitors (ever)','')+card(pc(visRet,vis.length),'Visitors who returned',visRet+' of '+vis.length)+card(n?pc(set.filter(e=>(e.people||[]).length>=avg).length,n):'0%','Events at or above average','');
+  animateNums($('anCards'));
   $('anLine').innerHTML=lineSvg(set.map(e=>({l:e.date,v:e.people.length})),avg);
   const all=set.flatMap(e=>e.people),cnt=k=>all.filter(p=>p.type===k||p.demo===k).length;
   donut('anType',TYPES.map(t=>({l:t,v:cnt(t),c:PAL[t]})));donut('anAge',['Adult','Youth','Kids'].map(t=>({l:t,v:cnt(t),c:PAL[t]})));
@@ -704,8 +767,9 @@ function renderDash(){
   let delta='n/a',dsub='needs 2 events',dcls='';
   if(n>=2&&sizes[n-2]>0){const d=Math.round((sizes[n-1]-sizes[n-2])/sizes[n-2]*100);delta=(d>=0?'▲ ':'▼ ')+Math.abs(d)+'%';dcls=d>=0?'up':'down';dsub=sizes[n-1]+' vs '+sizes[n-2]+' last time'}
   const vis=all.filter(p=>p.type!=='Member').length,vshare=tot?Math.round(vis/tot*100):0;
-  const card=(v,l,sub,c)=>'<div class="card"><b class="'+(c||'')+'">'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
+  const card=(v,l,sub,c)=>'<div class="card"><b'+dn(v)+' class="'+(c||'')+'">'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
   $('dashCards').innerHTML=card(tot,'Total check-ins',n+' events')+card(avg,'Average per event','')+card(bestN,'Best attendance',best?best.name+' '+(best.date||''):'')+card(delta,'Latest vs previous',dsub,dcls)+card(vshare+'%','Visitor share',vis+' visitors')+card(open.length+' / '+planned.length,'Open / planned','events');
+  animateNums($('dashCards'));
   $('chTrend').innerHTML=trendSvg(set);
   bars('chType',TYPES.map(t=>({l:t,v:cnt(t)})));bars('chAge',AGES.map(t=>({l:t,v:cnt(t)})));
   const inv={};all.filter(p=>p.type!=='Member'&&p.inv).forEach(p=>{const k=p.inv.trim().toLowerCase();(inv[k]=inv[k]||{l:p.inv.trim(),v:0}).v++});
