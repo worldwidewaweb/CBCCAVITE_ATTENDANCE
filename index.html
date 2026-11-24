@@ -160,6 +160,37 @@ main{padding:12px 12px 72px}
 }
 @media (pointer:coarse){button,select,input{min-height:44px}button.sm{min-height:38px}}
 @media (prefers-color-scheme:dark){.side{background:linear-gradient(180deg,#2d2711,#241f0d)}}
+
+/* ---- space efficiency and navigation ---- */
+.panel{padding:14px;margin-bottom:12px}.panel>h2{font-size:1.05rem;margin-bottom:10px}
+.card{padding:12px}.card b{font-size:1.6rem}
+.cards{gap:10px;margin-bottom:12px}.grid2{gap:12px;margin-bottom:12px}.topbar{margin-bottom:10px}
+.bar-row{margin:7px 0}th,td{padding:6px 8px}label{margin-bottom:8px}
+.ev{align-items:center}.ev .info{flex:1;min-width:150px}
+.ev .acts{position:relative;width:auto;flex-wrap:nowrap;margin-left:auto}
+.menu{position:absolute;right:0;top:calc(100% + 4px);z-index:25;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.2);padding:6px;display:flex;flex-direction:column;min-width:150px}
+.menu button{border:0;background:none;text-align:left;border-radius:6px;padding:8px 10px;font-size:.9rem}
+.menu button:hover{background:rgba(224,168,0,.15)}.menu button.danger{color:var(--red)}
+.subtabs{display:flex;gap:4px;margin:0 0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
+.subtabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:9px 14px;color:var(--muted);font-weight:600;white-space:nowrap}
+.subtabs button.act{color:var(--green);border-bottom-color:var(--gold)}
+.brandrow{display:flex;align-items:center;justify-content:space-between;gap:6px}
+#sideToggle{background:transparent;border-color:transparent;color:inherit;padding:4px 9px;font-size:1rem}
+@media (min-width:760px){
+#linkPanel:not(.hide){display:grid;grid-template-columns:minmax(0,1fr) 230px;column-gap:20px;align-items:start}
+#linkPanel>h2,#linkPanel>#linkState{grid-column:1/-1}
+#linkPanel>label,#linkPanel>.row{grid-column:1}
+#qrBox{grid-column:2;grid-row:3/span 5}
+}
+@media (min-width:801px){
+#app:not(.hide){transition:grid-template-columns .25s}
+#app.compact:not(.hide){grid-template-columns:72px minmax(0,1fr)}
+#app.compact .brandrow{flex-direction:column;gap:8px}
+#app.compact .brand{font-size:0}#app.compact .brand::before{content:"CBC";font-size:1rem}#app.compact .brand small{display:none}
+#app.compact .sidenav button{font-size:0;justify-content:center;gap:0;padding:12px 0}
+#app.compact .user #who{display:none}#app.compact .user button{font-size:0;padding:9px 0}#app.compact .user button::before{content:"\23FB";font-size:1.1rem}
+}
+@media (max-width:800px){#sideToggle{display:none}.ev .acts{width:100%;margin-left:0}.ev .acts>button.sm:not([aria-label]){flex:1}.subtabs button{padding:9px 10px;font-size:.88rem}}
 </style>
 </head>
 <body>
@@ -175,7 +206,7 @@ main{padding:12px 12px 72px}
 
 <div id="app" class="hide">
 <aside class="side noprint">
-  <div class="brand">CBC Cavite<small>Event attendance</small></div>
+  <div class="brandrow"><div class="brand">CBC Cavite<small>Event attendance</small></div><button id="sideToggle" aria-label="Collapse menu" title="Collapse menu">«</button></div>
   <nav class="sidenav" id="tabs">
     <button data-tab="dash" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
     <button data-tab="an"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v3M12 9v9M17 5v13"/></svg>Analytics</button>
@@ -234,11 +265,11 @@ main{padding:12px 12px 72px}
     <label>Date<input id="edate" type="date"></label>
     <label>Time<input id="etime" type="time"></label>
   </div>
-  <div class="row"><button class="primary hide" id="start">Open check-in now</button><button class="hide" id="plan">Plan for later</button></div>
+  <div class="row"><button class="primary hide" id="start">Open check-in now</button><button class="hide" id="plan">Plan for later</button><button id="cancelNew">Cancel</button></div>
 </section>
 
 <section class="panel hide" id="savedPanel">
-  <h2 id="savedTitle">Manage events</h2>
+  <div class="head" style="margin-bottom:10px"><h2 id="savedTitle" style="margin:0">Manage events</h2><button class="primary sm" id="newEvBtn">+ New event</button></div>
   <div class="row" style="margin-bottom:10px"><input id="evSearch" placeholder="Search by name, date or type" style="flex:2;min-width:170px"><select id="evFilter" style="flex:1;min-width:130px"><option value="">All statuses</option><option value="open">Open</option><option value="planned">Planned</option><option value="done">Finished</option></select><button class="sm" id="finishAll">Finish all open</button></div>
   <div id="savedList"></div>
 </section>
@@ -262,6 +293,7 @@ main{padding:12px 12px 72px}
     </div>
   </section>
 
+  <div class="subtabs noprint" id="evTabs"><button data-sub="att">Attendees</button><button data-sub="checkin">Check in</button><button data-sub="share">Share &amp; QR</button><button data-sub="done">Finish &amp; export</button></div>
   <section class="panel hide noprint" id="linkPanel">
     <h2>Check-in link and QR code</h2>
     <div class="msg" id="linkState"></div>
@@ -384,7 +416,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Special Events'];  // add or rename event types here
-let anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let creating=false,evSub='att',anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -489,7 +521,7 @@ function createEvent(openNow){
   if(page===null){$('epage').focus();return}
   const qr=$('eqr').value,kind=tpl,group=grp,date=$('edate').value,time=$('etime').value;
   const ref=db.collection('events').doc();
-  curId=ref.id;tpl='';grp='';pick($('tplBtns'),null);pick($('semBtns'),null);$('semLbl').classList.add('hide');$('semBtns').classList.add('hide');$('enameWrap').classList.add('hide');$('epageWrap').classList.add('hide');$('eqrWrap').classList.add('hide');$('start').classList.add('hide');$('plan').classList.add('hide');$('ename').value='';$('epage').value='';
+  curId=ref.id;creating=false;evSub='share';tpl='';grp='';pick($('tplBtns'),null);pick($('semBtns'),null);$('semLbl').classList.add('hide');$('semBtns').classList.add('hide');$('enameWrap').classList.add('hide');$('epageWrap').classList.add('hide');$('eqrWrap').classList.add('hide');$('start').classList.add('hide');$('plan').classList.add('hide');$('ename').value='';$('epage').value='';
   const b=db.batch();
   b.set(ref,{kind,group,qr,name,date,time,page,done:false,open:openNow,people:[],created:Date.now()});
   b.set(db.collection('pub').doc(ref.id),{name,date,time,state:openNow?'open':'planned'});
@@ -520,7 +552,7 @@ $('openCheckin').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('
 $('closeCheckin').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{open:false});pubSet(b,ev,'planned');guard(b.commit())};
 $('copyLink').onclick=async()=>{const i=$('linkUrl');try{await navigator.clipboard.writeText(i.value);$('copyLink').textContent='Copied!'}catch(e){i.select();document.execCommand('copy');$('copyLink').textContent='Copied!'}setTimeout(()=>$('copyLink').textContent='Copy link',1500)};
 const toList=()=>{curId=null;render();window.scrollTo(0,0)};
-$('newEv').onclick=toList;$('back').onclick=toList;
+$('newEv').onclick=()=>{creating=true;toList()};$('back').onclick=toList;
 
 // ---- QR code ----
 function drawQR(c,url){
@@ -619,6 +651,7 @@ window.alert=m=>{const t=String(m);ask({title:/^Could not/.test(t)?'Something we
 
 // ---- finish / reopen / start ----
 const evDoc=ev=>db.collection('events').doc(ev.id);
+const delEv=ev=>ask({title:'Delete this event?',message:'"'+ev.name+'" and its '+(ev.people||[]).length+' check-ins will be deleted for everyone.\nThis cannot be undone.',ok:'Delete',danger:true}).then(y=>{if(y){const b=db.batch();b.delete(evDoc(ev));b.delete(db.collection('pub').doc(ev.id));guard(b.commit())}});
 const finishEv=ev=>{const b=db.batch();b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed');guard(b.commit())};
 const reopenEv=ev=>{const b=db.batch();b.update(evDoc(ev),{done:false,open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
 const startEv=ev=>{const b=db.batch();b.update(evDoc(ev),{open:true});pubSet(b,ev,'open');serSet(b,ev);guard(b.commit())};
@@ -731,8 +764,15 @@ function applyTab(){
 }
 function showTab(t){tab=t;applyTab();render();window.scrollTo(0,0)}
 $('tabs').onclick=e=>{const b=e.target.closest('button');if(b)showTab(b.dataset.tab)};
-$('dashNew').onclick=()=>{curId=null;showTab('events')};
-function openEv(ev){curId=ev.id;showTab('events')}
+[...$('tabs').children].forEach(b=>b.title=b.textContent.trim());
+function setCompact(on){$('app').classList.toggle('compact',on);$('sideToggle').textContent=on?'\u00bb':'\u00ab';$('sideToggle').title=on?'Expand menu':'Collapse menu';try{localStorage.setItem('cbc-side',on?'1':'0')}catch(e){}}
+$('sideToggle').onclick=()=>setCompact(!$('app').classList.contains('compact'));
+try{if(localStorage.getItem('cbc-side')==='1')setCompact(true)}catch(e){}
+$('evTabs').onclick=e=>{const b=e.target.closest('button');if(b){evSub=b.dataset.sub;render()}};
+$('newEvBtn').onclick=()=>{creating=true;render();window.scrollTo(0,0)};
+$('cancelNew').onclick=()=>{creating=false;tpl='';grp='';pick($('tplBtns'),null);pick($('semBtns'),null);$('semLbl').classList.add('hide');$('semBtns').classList.add('hide');hideForm();render()};
+$('dashNew').onclick=()=>{curId=null;creating=true;showTab('events')};
+function openEv(ev){curId=ev.id;evSub='att';showTab('events')}
 function evRow(ev,sub){
   const r=document.createElement('div');r.className='ev';
   const i=document.createElement('div');i.className='info';
@@ -793,6 +833,8 @@ function matrix(ev){
   people(ev).forEach(p=>{m[p.type][p.demo]++;m[p.type].Total++;tot[p.demo]++;tot.Total++});
   return{m,tot};
 }
+function closeMenus(){document.querySelectorAll('.menu').forEach(m=>m.classList.add('hide'))}
+document.addEventListener('click',closeMenus);
 function renderSaved(){
   const box=$('savedList');box.innerHTML='';
   const q=($('evSearch').value||'').toLowerCase(),f=$('evFilter').value;
@@ -810,8 +852,10 @@ function renderSaved(){
     const acts=document.createElement('div');acts.className='acts';
     const mk=(t,fn,c)=>{const x=document.createElement('button');x.className='sm'+(c?' '+c:'');x.textContent=t;x.onclick=fn;return x};
     const stateBtn=st==='open'?mk('Finish',()=>ask({title:'Finish this event?',message:'"'+ev.name+'" will be marked as finished and check-in will close.',ok:'Finish'}).then(y=>{if(y)finishEv(ev)})):(st==='done'?mk('Reopen',()=>reopenEv(ev)):mk('Start',()=>startEv(ev)));
-    acts.append(mk('Open',()=>{curId=ev.id;render();window.scrollTo(0,0)}),stateBtn,mk('Edit',()=>openEdit(ev)),mk('PDF',()=>doPdf(ev)),mk('Excel',()=>doXlsx(ev)),
-      mk('Delete',()=>ask({title:'Delete this event?',message:'"'+ev.name+'" and its '+(ev.people||[]).length+' check-ins will be deleted for everyone.\nThis cannot be undone.',ok:'Delete',danger:true}).then(y=>{if(y){const b2=db.batch();b2.delete(db.collection('events').doc(ev.id));b2.delete(db.collection('pub').doc(ev.id));guard(b2.commit())}}),'danger'));
+    const menu=document.createElement('div');menu.className='menu hide';
+    [['Edit',()=>openEdit(ev)],['Download PDF',()=>doPdf(ev)],['Download Excel',()=>doXlsx(ev)],['Delete',()=>delEv(ev),'danger']].forEach(([t,fn,c])=>{const x=document.createElement('button');x.textContent=t;if(c)x.className=c;x.onclick=()=>{closeMenus();fn()};menu.append(x)});
+    const more=mk('\u22ef',e=>{e.stopPropagation();const was=menu.classList.contains('hide');closeMenus();menu.classList.toggle('hide',!was)});more.setAttribute('aria-label','More actions');
+    acts.append(mk('Open',()=>{curId=ev.id;evSub='att';render();window.scrollTo(0,0)}),stateBtn,more,menu);
     r.append(i,acts);box.append(r);
   });
 }
@@ -829,7 +873,7 @@ function render(){
   renderSaved();renderDash();if(tab==='qr')renderQr();if(tab==='an')renderAn();
   if(editId&&!EVENTS.find(x=>x.id===editId))editId=null;
   $('editPanel').classList.toggle('hide',!editId);
-  $('setup').classList.toggle('hide',!!ev||!admin);$('live').classList.toggle('hide',!ev);
+  $('setup').classList.toggle('hide',!!ev||!admin||!(creating||!EVENTS.length));$('cancelNew').classList.toggle('hide',!EVENTS.length);$('live').classList.toggle('hide',!ev);
   if(!ev)return;
   $('overview').classList.toggle('hide',!admin);$('finishPanel').classList.toggle('hide',!admin);
   $('fillPanel').classList.toggle('hide',admin);
@@ -871,6 +915,13 @@ function render(){
   const{m,tot}=matrix(ev);
   $('sum').innerHTML=TYPES.map(t=>`<tr><td>${t}</td><td class="n">${m[t].Adult}</td><td class="n">${m[t].Youth}</td><td class="n">${m[t].Kids}</td><td class="n"><b>${m[t].Total}</b></td></tr>`).join('');
   $('sumfoot').innerHTML=`<tr><td>Total</td><td class="n">${tot.Adult}</td><td class="n">${tot.Youth}</td><td class="n">${tot.Kids}</td><td class="n">${tot.Total}</td></tr>`;
+  const dn2=!!ev.done;if(dn2&&evSub==='checkin')evSub='att';
+  $('evTabs').children[1].classList.toggle('hide',dn2);
+  $('checkin').classList.toggle('hide',evSub!=='checkin'||dn2);
+  $('overview').classList.toggle('hide',evSub!=='att');
+  $('linkPanel').classList.toggle('hide',evSub!=='share');
+  $('finishPanel').classList.toggle('hide',evSub!=='done');
+  [...$('evTabs').children].forEach(b=>b.classList.toggle('act',b.dataset.sub===evSub));
 }
 
 // ---- exports ----
