@@ -104,6 +104,12 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .ev .acts{display:flex;gap:6px;flex-wrap:wrap;width:100%}.ev{align-items:flex-start}
 button.sm{padding:6px 11px;font-size:.85rem}
 .up{color:var(--green)}.down{color:var(--red)}
+.modal{position:fixed;inset:0;background:rgba(20,16,4,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+.mbox{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-top:5px solid var(--gold);border-radius:14px;padding:22px;max-width:420px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.mbox.dng{border-top-color:var(--red)}
+.mbox h3{margin:0 0 8px;font-size:1.15rem}.mbox p{margin:0 0 14px;color:var(--muted);white-space:pre-line}
+.mact{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+button.dangerfill{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
 </style>
 </head>
 <body>
@@ -278,6 +284,9 @@ button.sm{padding:6px 11px;font-size:.85rem}
 </section>
 </div>
 </div>
+<div class="modal hide" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="mbox" id="mBox"><h3 id="mTitle"></h3><p id="mMsg"></p><input id="mInput" class="hide"><div class="mact"><button id="mCancel">Cancel</button><button class="primary" id="mOk">OK</button></div></div>
+</div>
 <div class="poster" id="poster">
   <h1 id="posterTitle"></h1>
   <div class="pwhen" id="posterWhen"></div>
@@ -445,11 +454,13 @@ function drawQR(c,url){
 const linkOf=ev=>{const qk=qrOf(ev);if(qk)return seriesLink(qk);const u=new URL(ev.page||'checkin.html',location.href);u.searchParams.set('e',ev.id);return u.href};
 $('evQrSave').onclick=()=>{const ev=E();if(!ev)return;const k=$('evQr').value,b=db.batch();b.update(db.collection('events').doc(ev.id),{qr:k});if(stateOf(ev)==='open')serSet(b,{...ev,qr:k});guard(b.commit())};
 $('newQr').onclick=()=>{
-  const n=(prompt('Name for the new permanent QR code (for example: Special Events)')||'').trim();if(!n)return;
-  const key=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
-  if(key.length<3)return alert('Please use a longer name.');
-  if(SER[key]||BASE_SERIES.find(x=>x.key===key))return alert('That QR code already exists.');
-  guard(db.collection('series').doc(key).set({label:n,eventId:''},{merge:true}));
+  ask({title:'New QR code',message:'What should this permanent QR code be called? For example: Prayer Meeting.',input:true,placeholder:'QR code name',ok:'Create'}).then(v=>{
+    const n=(v||'').trim();if(!n)return;
+    const key=n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
+    if(key.length<3)return alert('Please use a longer name.');
+    if(SER[key]||BASE_SERIES.find(x=>x.key===key))return alert('That QR code already exists.');
+    guard(db.collection('series').doc(key).set({label:n,eventId:''},{merge:true}));
+  });
 };
 $('pageSave').onclick=()=>{const ev=E();if(!ev)return;const p=cleanPage($('pageEdit').value);if(p===null)return;guard(db.collection('events').doc(ev.id).update({page:p}))};
 $('qrDl').onclick=()=>{const ev=E();$('qr').toBlob(b=>dl(b,'checkin-qr-'+(ev?ev.name.replace(/[^\w\-]+/g,'_'):'event')+'.png'))};
@@ -496,11 +507,34 @@ function renderQr(){
     row.append(
       mk('Print QR sheet',()=>printPoster(v.name,'',url)),
       mk('Download PNG',()=>c.toBlob(b=>dl(b,'qr-'+v.key+'.png'))),
-      mk('Copy link',async e=>{try{await navigator.clipboard.writeText(url);e.target.textContent='Copied!';setTimeout(()=>e.target.textContent='Copy link',1500)}catch(x){prompt('Copy this link:',url)}}));
+      mk('Copy link',async e=>{try{await navigator.clipboard.writeText(url);e.target.textContent='Copied!';setTimeout(()=>e.target.textContent='Copy link',1500)}catch(x){ask({title:'Copy link',message:'Select the link below and copy it.',input:true,value:url,ok:'Close',alertOnly:true})}}));
     p.append(h,c,st,row);box.append(p);drawQR(c,url);
   });
 }
 window.addEventListener('afterprint',()=>document.body.classList.remove('pp'));
+
+// ---- dialog boxes (replace the browser's plain pop-ups) ----
+let dq=Promise.resolve();
+function ask(o){const p=dq.then(()=>showDialog(o));dq=p.then(()=>{},()=>{});return p}
+function showDialog(o){
+  return new Promise(res=>{
+    const m=$('modal'),inp=$('mInput'),ok=$('mOk'),cancelVal=o.input?null:false;
+    $('mTitle').textContent=o.title||'Notice';$('mMsg').textContent=o.message||'';
+    $('mBox').classList.toggle('dng',!!o.danger);
+    inp.classList.toggle('hide',!o.input);inp.value=o.value||'';inp.placeholder=o.placeholder||'';
+    $('mCancel').classList.toggle('hide',!!o.alertOnly);$('mCancel').textContent=o.cancel||'Cancel';
+    ok.textContent=o.ok||'OK';ok.className=o.danger?'dangerfill':'primary';
+    m.classList.remove('hide');
+    const done=v=>{m.classList.add('hide');document.removeEventListener('keydown',key);res(v)};
+    const key=e=>{if(e.key==='Escape')done(o.alertOnly?true:cancelVal);else if(e.key==='Enter'&&e.target.tagName!=='BUTTON')done(o.input?inp.value:true)};
+    ok.onclick=()=>done(o.input?inp.value:true);
+    $('mCancel').onclick=()=>done(cancelVal);
+    m.onclick=e=>{if(e.target===m)done(o.alertOnly?true:cancelVal)};
+    document.addEventListener('keydown',key);
+    setTimeout(()=>(o.input?inp:(o.danger?$('mCancel'):ok)).focus(),0);
+  });
+}
+window.alert=m=>{const t=String(m);ask({title:/^Could not/.test(t)?'Something went wrong':'Notice',message:t,alertOnly:true})};
 
 // ---- finish / reopen / start ----
 const evDoc=ev=>db.collection('events').doc(ev.id);
@@ -510,8 +544,10 @@ const startEv=ev=>{const b=db.batch();b.update(evDoc(ev),{open:true});pubSet(b,e
 $('finishAll').onclick=()=>{
   const o=EVENTS.filter(e=>stateOf(e)==='open');
   if(!o.length)return alert('There are no open events.');
-  if(!confirm('Finish '+o.length+' open event(s)? Check-in will close for all of them.'))return;
-  const b=db.batch();o.forEach(ev=>{b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed')});guard(b.commit());
+  ask({title:'Finish all open events?',message:o.length+' open event(s) will be marked as finished and check-in will close for all of them.',ok:'Finish all'}).then(y=>{
+    if(!y)return;
+    const b=db.batch();o.forEach(ev=>{b.update(evDoc(ev),{done:true,open:false});pubSet(b,ev,'closed')});guard(b.commit());
+  });
 };
 // ---- edit / manage ----
 function openEdit(ev){
@@ -621,9 +657,9 @@ function renderSaved(){
     i.append(b,sm);
     const acts=document.createElement('div');acts.className='acts';
     const mk=(t,fn,c)=>{const x=document.createElement('button');x.className='sm'+(c?' '+c:'');x.textContent=t;x.onclick=fn;return x};
-    const stateBtn=st==='open'?mk('Finish',()=>{if(confirm('Mark "'+ev.name+'" as finished? Check-in will close.'))finishEv(ev)}):(st==='done'?mk('Reopen',()=>reopenEv(ev)):mk('Start',()=>startEv(ev)));
+    const stateBtn=st==='open'?mk('Finish',()=>ask({title:'Finish this event?',message:'"'+ev.name+'" will be marked as finished and check-in will close.',ok:'Finish'}).then(y=>{if(y)finishEv(ev)})):(st==='done'?mk('Reopen',()=>reopenEv(ev)):mk('Start',()=>startEv(ev)));
     acts.append(mk('Open',()=>{curId=ev.id;render();window.scrollTo(0,0)}),stateBtn,mk('Edit',()=>openEdit(ev)),mk('PDF',()=>doPdf(ev)),mk('Excel',()=>doXlsx(ev)),
-      mk('Delete',()=>{if(confirm('Delete "'+ev.name+'" and its '+(ev.people||[]).length+' check-ins for everyone? This cannot be undone.')){const b2=db.batch();b2.delete(db.collection('events').doc(ev.id));b2.delete(db.collection('pub').doc(ev.id));guard(b2.commit())}},'danger'));
+      mk('Delete',()=>ask({title:'Delete this event?',message:'"'+ev.name+'" and its '+(ev.people||[]).length+' check-ins will be deleted for everyone.\nThis cannot be undone.',ok:'Delete',danger:true}).then(y=>{if(y){const b2=db.batch();b2.delete(db.collection('events').doc(ev.id));b2.delete(db.collection('pub').doc(ev.id));guard(b2.commit())}}),'danger'));
     r.append(i,acts);box.append(r);
   });
 }
@@ -702,12 +738,19 @@ const doXlsx=ev=>{
 $('xlsx').onclick=()=>doXlsx(E());
 const doPdf=ev=>{
   if(!(window.jspdf&&window.jspdf.jsPDF))return alert('The PDF library could not load. Check your internet connection and try again.');
-  const d=new window.jspdf.jsPDF();
-  d.setFontSize(18);d.text(ev.name,14,18);d.setFontSize(11);
-  d.text('Date: '+(ev.date||'-')+'     Time: '+(fmtTime(ev.time)||'-'),14,26);
-  d.autoTable({startY:32,head:[['Type','Adult','Youth','Kids','Total']],body:sumRows(ev),headStyles:{fillColor:[31,78,61]},
-    didParseCell:h=>{if(h.row.index===3&&h.section==='body')h.cell.styles.fontStyle='bold'}});
-  d.autoTable({startY:d.lastAutoTable.finalY+8,head:[['No.','Name','Type','Invited by','Age group']],body:listRows(ev),headStyles:{fillColor:[31,78,61]}});
+  const d=new window.jspdf.jsPDF(),W=d.internal.pageSize.getWidth(),H=d.internal.pageSize.getHeight();
+  const GOLD=[224,168,0],DARK=[28,26,20],SOFT=[251,240,200],ALT=[253,247,224];
+  d.setFillColor(...GOLD);d.rect(0,0,W,36,'F');
+  d.setTextColor(...DARK);d.setFont('helvetica','bold');d.setFontSize(9);d.text('CBC CAVITE  |  ATTENDANCE REPORT',14,12);
+  d.setFontSize(21);d.text(ev.name,14,23);
+  d.setFont('helvetica','normal');d.setFontSize(11);d.text([ev.date,fmtTime(ev.time)].filter(Boolean).join('   -   '),14,31);
+  d.setFont('helvetica','bold');d.setFontSize(12);d.text('Total checked in: '+(ev.people||[]).length,14,46);
+  const head={fillColor:GOLD,textColor:DARK,fontStyle:'bold'},st={textColor:DARK};
+  d.autoTable({startY:52,head:[['Type','Adult','Youth','Kids','Total']],body:sumRows(ev),headStyles:head,styles:st,alternateRowStyles:{fillColor:ALT},
+    didParseCell:h=>{if(h.row.index===3&&h.section==='body'){h.cell.styles.fontStyle='bold';h.cell.styles.fillColor=SOFT}}});
+  d.autoTable({startY:d.lastAutoTable.finalY+10,head:[['No.','Name','Type','Invited by','Age group']],body:listRows(ev),headStyles:head,styles:st,alternateRowStyles:{fillColor:ALT}});
+  const n=d.internal.getNumberOfPages();
+  for(let k=1;k<=n;k++){d.setPage(k);d.setFont('helvetica','normal');d.setFontSize(9);d.setTextColor(120);d.text('Page '+k+' of '+n+'   |   Generated '+new Date().toLocaleDateString(),W-14,H-8,{align:'right'})}
   d.save(fname('pdf',ev));
 };
 $('pdf').onclick=()=>doPdf(E());
