@@ -203,6 +203,8 @@ input,select{background:#fff;border-color:#eadfb4}
 .side{background:linear-gradient(180deg,#fffbe8,#fff3c0);border-color:#f3e2a0;color:#3b3216}
 .sidenav button.act,.sidenav button.act:hover{background:var(--gold);color:#1f1c12}
 .modal{background:rgba(70,55,10,.32)}
+.kd{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px}
+#anCmp tfoot td,#anCmp tr.tot td{font-weight:700;border-top:2px solid var(--line)}
 </style>
 </head>
 <body>
@@ -373,7 +375,8 @@ input,select{background:#fff;border-color:#eadfb4}
 <section class="hide" id="tab-an">
   <div class="head"><div class="row" style="gap:8px;flex:1"><select id="anKind" style="max-width:230px"></select><select id="anRange" style="max-width:190px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last 12 months</option><option value="0">All time</option></select></div><button id="anXlsx">Download analytics (Excel)</button></div>
   <div class="cards" id="anCards"></div>
-  <div class="panel"><h2>Attendance over time</h2><div id="anLine"></div></div>
+  <div class="panel"><h2>Compare event types</h2><div class="msg" style="padding-top:0">Each kind of event side by side. Uses the period chosen above.</div><div class="scroll"><table id="anCmp"></table></div><div class="msg" style="padding-bottom:0">Average attendance</div><div id="anCmpBars"></div></div>
+  <div class="panel"><h2>Attendance over time</h2><div class="legend" id="anLegend"></div><div id="anLine"></div></div>
   <div class="grid2">
     <div class="panel"><h2>Members and visitors</h2><div id="anType"></div></div>
     <div class="panel"><h2>Age groups</h2><div id="anAge"></div></div>
@@ -808,6 +811,36 @@ function lineSvg(rows,avg){
   rows.forEach((x,k)=>{g+='<circle cx="'+X(k)+'" cy="'+Y(x.v)+'" r="4.5" fill="#F5B800" stroke="#fff" stroke-width="1.5"/><text x="'+X(k)+'" y="'+(Y(x.v)-9)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+x.v+'</text>';if(n<=14||k%Math.ceil(n/12)===0)g+='<text x="'+X(k)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.l||'').slice(5)||'?')+'</text>'});
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance over time">'+g+'</svg>';
 }
+const KPAL=['#F5B800','#2f7fc0','#3a9a85','#d9772b','#8a5cc2','#c0508a','#6a7a8c'];
+const kindColor=k=>{
+  if(k==='Celebration Service')return KPAL[0];if(k==='Youth LINK')return KPAL[1];
+  const ks=[...new Set(EVENTS.map(e=>e.kind||'Other'))].filter(x=>x!=='Celebration Service'&&x!=='Youth LINK').sort();
+  return KPAL[2+ks.indexOf(k)%(KPAL.length-2)];
+};
+const anBase=()=>{
+  const cut=+anRange?new Date(Date.now()-anRange*864e5).toISOString().slice(0,10):'';
+  return EVENTS.filter(e=>(e.people||[]).length>0&&(!cut||(e.date||'')>=cut)).sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))||(a.created||0)-(b.created||0));
+};
+function typeStats(){
+  const m={},all={kind:'All events',ev:0,tot:0,peak:0,M:0,V:0,A:0,Y:0,K:0,ppl:new Set()};
+  anBase().forEach(e=>{
+    const k=e.kind||'Other',x=m[k]=m[k]||{kind:k,ev:0,tot:0,peak:0,M:0,V:0,A:0,Y:0,K:0,ppl:new Set()};
+    [x,all].forEach(t=>{t.ev++;t.tot+=e.people.length;t.peak=Math.max(t.peak,e.people.length);e.people.forEach(p=>{if(p.type==='Member')t.M++;else t.V++;if(p.demo==='Adult')t.A++;else if(p.demo==='Youth')t.Y++;else t.K++;t.ppl.add(normName(p.name))})});
+  });
+  return{rows:Object.values(m).sort((a,b)=>b.tot-a.tot),all};
+}
+function multiLine(set){
+  const W=700,H=230,L=34,B=32,T=14,R=12,n=set.length,pw=W-L-R,ph=H-T-B,max=Math.max(1,...set.map(e=>e.people.length));
+  const X=k=>L+(n===1?pw/2:pw*k/(n-1)),Y=v=>T+ph-ph*v/max;let g='';
+  for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">'+Math.round(max*k/4)+'</text>'}
+  [...new Set(set.map(e=>e.kind||'Other'))].forEach(k=>{
+    const pts=set.map((e,i)=>({e,i})).filter(x=>(x.e.kind||'Other')===k),col=kindColor(k);
+    if(pts.length>1)g+='<polyline class="dl" pathLength="1" fill="none" stroke="'+col+'" stroke-width="3" stroke-linejoin="round" points="'+pts.map(x=>X(x.i)+','+Y(x.e.people.length)).join(' ')+'"/>';
+    pts.forEach(x=>{g+='<circle cx="'+X(x.i)+'" cy="'+Y(x.e.people.length)+'" r="5.5" fill="'+col+'" stroke="#fff" stroke-width="1.5"><title>'+esc(x.e.name+' '+(x.e.date||'')+': '+x.e.people.length+' people')+'</title></circle>'});
+  });
+  set.forEach((e,k)=>{if(n<=14||k%Math.ceil(n/12)===0)g+='<text x="'+X(k)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((e.date||'').slice(5)||'?')+'</text>'});
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance over time by event type">'+g+'</svg>';
+}
 function anData(){
   const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))],hasSem=EVENTS.some(e=>e.group==='Seminars');
   if(document.activeElement!==$('anKind')){$('anKind').innerHTML='<option value="">All event types</option>'+(hasSem?'<option value="group:Seminars">All seminars</option>':'')+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('anKind').value=(kinds.includes(anKind)||(hasSem&&anKind==='group:Seminars'))?anKind:''}
@@ -826,7 +859,14 @@ function renderAn(){
   $('anCards').innerHTML=card(tot,'Total check-ins',n+' events')+card(Math.round(avg*10)/10,'Average attendance','')+card(Math.max(0,...sizes),'Peak attendance','')+card(uniq,'Unique people','')
     +card(ret,'Returning people',pc(ret,uniq)+' came 2+ times')+card(vis.length,'Visitors (ever)','')+card(pc(visRet,vis.length),'Visitors who returned',visRet+' of '+vis.length)+card(n?pc(set.filter(e=>(e.people||[]).length>=avg).length,n):'0%','Events at or above average','');
   animateNums($('anCards'));
-  $('anLine').innerHTML=lineSvg(set.map(e=>({l:e.date,v:e.people.length})),avg);
+  const ks=[...new Set(set.map(e=>e.kind||'Other'))];
+  if(ks.length>1){$('anLine').innerHTML=multiLine(set);$('anLegend').innerHTML=ks.map(k=>'<span><i style="background:'+kindColor(k)+'"></i>'+esc(k)+'</span>').join('')}
+  else{$('anLine').innerHTML=lineSvg(set.map(e=>({l:e.date,v:e.people.length})),avg);$('anLegend').innerHTML=ks.length?'<span><i style="background:'+kindColor(ks[0])+'"></i>'+esc(ks[0])+'</span>':''}
+  const{rows:ts,all:ta}=typeStats(),pc2=(a,b)=>b?Math.round(a/b*100)+'%':'0%',avg2=t=>t.ev?Math.round(t.tot/t.ev*10)/10:0;
+  const tr=t=>'<td class="n">'+t.ev+'</td><td class="n"><b>'+t.tot+'</b></td><td class="n">'+avg2(t)+'</td><td class="n">'+t.peak+'</td><td class="n">'+pc2(t.M,t.tot)+'</td><td class="n">'+pc2(t.V,t.tot)+'</td><td class="n">'+t.A+'</td><td class="n">'+t.Y+'</td><td class="n">'+t.K+'</td><td class="n">'+t.ppl.size+'</td>';
+  $('anCmp').innerHTML='<tr><th>Event type</th><th class="n">Events</th><th class="n">Check-ins</th><th class="n">Average</th><th class="n">Peak</th><th class="n">Members</th><th class="n">Visitors</th><th class="n">Adult</th><th class="n">Youth</th><th class="n">Kids</th><th class="n">Unique people</th></tr>'
+    +(ts.length?ts.map(t=>'<tr><td><i class="kd" style="background:'+kindColor(t.kind)+'"></i>'+esc(t.kind)+'</td>'+tr(t)+'</tr>').join('')+'<tr class="tot"><td>All events</td>'+tr(ta)+'</tr>':'<tr><td colspan="11" class="msg">No check-ins in this period yet.</td></tr>');
+  bars('anCmpBars',ts.map(t=>({l:t.kind,v:avg2(t),c:kindColor(t.kind)})));
   const all=set.flatMap(e=>e.people),cnt=k=>all.filter(p=>p.type===k||p.demo===k).length;
   donut('anType',TYPES.map(t=>({l:t,v:cnt(t),c:PAL[t]})));donut('anAge',['Adult','Youth','Kids'].map(t=>({l:t,v:cnt(t),c:PAL[t]})));
   const DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],dw=DN.map(()=>[0,0]);
@@ -839,25 +879,26 @@ function renderAn(){
   const recent=new Set(set.slice(-3).map(e=>e.id));
   const fol=n>=4?ppl.filter(x=>x.ev.size>=2&&![...x.ev].some(id=>recent.has(id))).sort((a,b)=>b.ev.size-a.ev.size).slice(0,10):[];
   fill('anFollow',fol.map(x=>{const d=document.createElement('div');d.className='ev';const i=document.createElement('div');i.className='info';const b=document.createElement('b');b.textContent=x.name;const m=document.createElement('small');m.textContent='came '+x.ev.size+' times · last seen '+(x.last||'-');i.append(b,m);d.append(i);return d}),n>=4?'Everyone who attended regularly is still coming.':'Needs at least 4 events to compare.');
-  $('anTable').innerHTML='<tr><th>Date</th><th>Event</th><th class="n">Total</th><th class="n">Members</th><th class="n">Visitors</th><th class="n">Regular</th><th class="n">Adult</th><th class="n">Youth</th><th class="n">Kids</th></tr>'
-    +[...set].reverse().slice(0,60).map(e=>{const c=counts(e);return '<tr><td>'+esc(e.date||'')+'</td><td>'+esc(e.name)+'</td><td class="n"><b>'+e.people.length+'</b></td><td class="n">'+c.Member+'</td><td class="n">'+c.Visitor+'</td><td class="n">'+c['Regular Visitor']+'</td><td class="n">'+c.Adult+'</td><td class="n">'+c.Youth+'</td><td class="n">'+c.Kids+'</td></tr>'}).join('');
+  $('anTable').innerHTML='<tr><th>Date</th><th>Event</th><th>Type</th><th class="n">Total</th><th class="n">Members</th><th class="n">Visitors</th><th class="n">Regular</th><th class="n">Adult</th><th class="n">Youth</th><th class="n">Kids</th></tr>'
+    +[...set].reverse().slice(0,60).map(e=>{const c=counts(e);return '<tr><td>'+esc(e.date||'')+'</td><td>'+esc(e.name)+'</td><td><i class="kd" style="background:'+kindColor(e.kind||'Other')+'"></i>'+esc(e.kind||'Other')+'</td><td class="n"><b>'+e.people.length+'</b></td><td class="n">'+c.Member+'</td><td class="n">'+c.Visitor+'</td><td class="n">'+c['Regular Visitor']+'</td><td class="n">'+c.Adult+'</td><td class="n">'+c.Youth+'</td><td class="n">'+c.Kids+'</td></tr>'}).join('');
 }
 $('anKind').onchange=e=>{anKind=e.target.value;renderAn()};
 $('anRange').onchange=e=>{anRange=e.target.value;renderAn()};
 $('anXlsx').onclick=()=>{
   if(typeof XLSX==='undefined')return alert('The Excel library could not load. Check your internet connection and try again.');
   const{set,ppl}=anData(),wb=XLSX.utils.book_new();
-  const ev=[['Date','Time','Event','Total','Members','Visitors','Regular visitors','Adult','Youth','Kids'],...set.map(e=>{const c=counts(e);return[e.date||'',fmtTime(e.time),e.name,e.people.length,c.Member,c.Visitor,c['Regular Visitor'],c.Adult,c.Youth,c.Kids]})];
+  const ev=[['Date','Time','Event','Type','Total','Members','Visitors','Regular visitors','Adult','Youth','Kids'],...set.map(e=>{const c=counts(e);return[e.date||'',fmtTime(e.time),e.name,e.kind||'',e.people.length,c.Member,c.Visitor,c['Regular Visitor'],c.Adult,c.Youth,c.Kids]})];
   const pp=[['Name','Times attended','Last seen','Ever a visitor'],...[...ppl].sort((a,b)=>b.ev.size-a.ev.size).map(x=>[x.name,x.ev.size,x.last,x.vis?'Yes':'No'])];
-  const a=XLSX.utils.aoa_to_sheet(ev),b=XLSX.utils.aoa_to_sheet(pp);a['!cols']=[{wch:12},{wch:10},{wch:30},{wch:8},{wch:9},{wch:9},{wch:16},{wch:8},{wch:8},{wch:8}];b['!cols']=[{wch:30},{wch:14},{wch:12},{wch:14}];
-  XLSX.utils.book_append_sheet(wb,a,'By event');XLSX.utils.book_append_sheet(wb,b,'People');XLSX.writeFile(wb,'attendance-analytics.xlsx');
+  const a=XLSX.utils.aoa_to_sheet(ev),b=XLSX.utils.aoa_to_sheet(pp);a['!cols']=[{wch:12},{wch:10},{wch:30},{wch:22},{wch:8},{wch:9},{wch:9},{wch:16},{wch:8},{wch:8},{wch:8}];b['!cols']=[{wch:30},{wch:14},{wch:12},{wch:14}];
+  const{rows:T,all:TA}=typeStats(),tt=[['Event type','Events','Check-ins','Average','Peak','Members','Visitors','Adult','Youth','Kids','Unique people'],...[...T,TA].map(t=>[t.kind,t.ev,t.tot,t.ev?Math.round(t.tot/t.ev*10)/10:0,t.peak,t.M,t.V,t.A,t.Y,t.K,t.ppl.size])],tw=XLSX.utils.aoa_to_sheet(tt);tw['!cols']=[{wch:28}];
+  XLSX.utils.book_append_sheet(wb,tw,'By type');XLSX.utils.book_append_sheet(wb,a,'By event');XLSX.utils.book_append_sheet(wb,b,'People');XLSX.writeFile(wb,'attendance-analytics.xlsx');
 };
 
 // ---- dashboard ----
 let tab='dash';
 const TITLES={mem:'Members',an:'Analytics',dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function bars(id,items){const max=Math.max(1,...items.map(i=>i.v));$(id).innerHTML=items.length?items.map(i=>'<div class="bar-row"><span class="bl" title="'+esc(i.l)+'">'+esc(i.l)+'</span><span class="bt"><i style="width:'+Math.round(i.v/max*100)+'%"></i></span><b>'+i.v+'</b></div>').join(''):'<div class="msg">No data yet.</div>'}
+function bars(id,items){const max=Math.max(1,...items.map(i=>i.v));$(id).innerHTML=items.length?items.map(i=>'<div class="bar-row"><span class="bl" title="'+esc(i.l)+'">'+esc(i.l)+'</span><span class="bt"><i style="width:'+Math.round(i.v/max*100)+'%'+(i.c?';background:'+i.c:'')+'"></i></span><b>'+i.v+'</b></div>').join(''):'<div class="msg">No data yet.</div>'}
 function applyTab(){
   $('pageTitle').textContent=TITLES[tab];
   $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');$('tab-an').classList.toggle('hide',tab!=='an');$('tab-mem').classList.toggle('hide',tab!=='mem');
