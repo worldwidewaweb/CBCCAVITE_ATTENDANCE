@@ -194,6 +194,7 @@ main{padding:12px 12px 72px}
 .banner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--amberbg);color:var(--ink);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:12px}
 .banner b{font-weight:700}.banner .row{gap:6px}
 button.x.ed{color:var(--green)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.two>label{min-width:0}
 </style>
 </head>
 <body>
@@ -213,6 +214,7 @@ button.x.ed{color:var(--green)}
   <nav class="sidenav" id="tabs">
     <button data-tab="dash" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
     <button data-tab="an"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v3M12 9v9M17 5v13"/></svg>Analytics</button>
+    <button data-tab="mem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Members</button>
     <button data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Events</button>
     <button data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Reports</button>
     <button data-tab="qr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>QR codes</button>
@@ -282,7 +284,7 @@ button.x.ed{color:var(--green)}
   <section class="panel">
     <div class="head"><h2 id="evtitle" style="margin:0"></h2><span id="evwhen" class="msg"></span><button id="editEv" class="noprint">Edit</button><button id="back" class="noprint">All events</button></div>
     <div id="checkin">
-      <label>Name<input id="name" autocomplete="off" placeholder="Full name"></label>
+      <div class="two"><label>First name<input id="first" autocomplete="off" placeholder="First name"></label><label>Last name<input id="last" autocomplete="off" placeholder="Last name"></label></div>
       <div class="lbl">Type</div>
       <div class="choices" id="typeBtns">
         <button data-v="Member">Member</button><button data-v="Visitor">Visitor</button><button data-v="Regular Visitor">Regular Visitor</button>
@@ -355,6 +357,11 @@ button.x.ed{color:var(--green)}
   </section>
 </div>
 </div>
+<section class="hide" id="tab-mem">
+  <div class="head"><div class="row" style="gap:8px;flex:1"><select id="mKind" style="max-width:220px"></select><select id="mN" style="max-width:120px"><option value="4">Last 4</option><option value="8" selected>Last 8</option><option value="12">Last 12</option></select><select id="mSort" style="max-width:190px"><option value="name">Sort: Name</option><option value="most">Sort: Most attended</option><option value="follow">Sort: Needs follow-up</option></select><input id="mSearch" placeholder="Search members" style="max-width:190px"></div><div class="row" style="gap:6px"><button class="sm" id="mXlsx">Excel</button><button class="primary sm" id="mAdd">+ Add member</button></div></div>
+  <div class="cards" id="mCards"></div>
+  <div class="panel"><h2>Attendance by member</h2><div class="msg" style="padding-top:0">Members are saved automatically when they check in as Member. A tick means they came to that event.</div><div class="scroll"><table id="mTable"></table></div></div>
+</section>
 <section class="hide" id="tab-an">
   <div class="head"><div class="row" style="gap:8px;flex:1"><select id="anKind" style="max-width:230px"></select><select id="anRange" style="max-width:190px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last 12 months</option><option value="0">All time</option></select></div><button id="anXlsx">Download analytics (Excel)</button></div>
   <div class="cards" id="anCards"></div>
@@ -391,7 +398,7 @@ button.x.ed{color:var(--green)}
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="modal hide" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
-  <div class="mbox" id="mBox"><h3 id="mTitle"></h3><p id="mMsg"></p><input id="mInput" class="hide"><div class="mact"><button id="mCancel">Cancel</button><button class="primary" id="mOk">OK</button></div></div>
+  <div class="mbox" id="mBox"><h3 id="mTitle"></h3><p id="mMsg"></p><input id="mInput" class="hide"><input id="mInput2" class="hide" style="margin-top:8px"><div class="mact"><button id="mCancel">Cancel</button><button class="primary" id="mOk">OK</button></div></div>
 </div>
 <div class="poster" id="poster">
   <h1 id="posterTitle"></h1>
@@ -420,7 +427,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Special Events'];  // add or rename event types here
-let creating=false,evSub='att',anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let unsubMem=null,MEMB={},memLoaded=false,pendMem={},mKind='',mInit=false,creating=false,evSub='att',anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -452,13 +459,15 @@ if(auth)auth.onAuthStateChanged(u=>{
   $('login').classList.toggle('hide',!!u);$('app').classList.toggle('hide',!u);
   if(unsub){unsub();unsub=null}
   if(unsubSer){unsubSer();unsubSer=null}
-  if(!u){EVENTS=[];curId=null;role='';serLoaded=false;pendingLink={};return}
+  if(unsubMem){unsubMem();unsubMem=null}
+  if(!u){EVENTS=[];curId=null;role='';serLoaded=false;pendingLink={};MEMB={};memLoaded=false;pendMem={};return}
   $('who').textContent='Signed in as '+u.email;$('pass').value='';
   db.collection('users').doc((u.email||'').toLowerCase()).get().then(d=>{
     const r=d.exists?d.data().role:'';
     role=(r==='admin')?'admin':'';
     $('who').textContent='Signed in as '+u.email+(role?' ('+'Admin'+')':'');
     if(!role){render();return}
+    unsubMem=db.collection('members').onSnapshot(sn=>{MEMB={};sn.forEach(d=>{MEMB[d.id]=d.data()});memLoaded=true;render()},()=>{});
     unsubSer=db.collection('series').onSnapshot(sn=>{SER={};sn.forEach(d=>{SER[d.id]=d.data()});serLoaded=true;render()},()=>{});
     unsub=db.collection('events').orderBy('created').onSnapshot(
       snap=>{EVENTS=snap.docs.map(d=>({id:d.id,...d.data()}));render()},
@@ -536,18 +545,19 @@ $('start').onclick=()=>createEvent(true);
 $('plan').onclick=()=>createEvent(false);
 $('add').onclick=()=>{
   const ev=E();if(!ev)return;
-  const n=$('name').value.trim();
-  if(!n)return err('Enter a name.');
+  const f=$('first').value.replace(/\s+/g,' ').trim().slice(0,40),l=$('last').value.replace(/\s+/g,' ').trim().slice(0,40),n=(f+' '+l).trim();
+  if(!f)return err('Enter a first name.');
+  if(!l)return err('Enter a last name.');
   if(!type)return err('Choose Member, Visitor, or Regular Visitor.');
   if(!demo)return err('Choose Adult, Youth, or Kids.');
   if(type!=='Member'&&!$('inv').value.trim()){$('inv').focus();return err('Write who invited this person.');}
   err('');
-  const p={id:uid(),name:n,type,inv:type==='Member'?'':$('inv').value.trim(),demo,t:Date.now()};
+  const p={id:uid(),name:n,first:f,last:l,type,inv:type==='Member'?'':$('inv').value.trim(),demo,t:Date.now()};
   guard(db.collection('events').doc(ev.id).update({people:firebase.firestore.FieldValue.arrayUnion(p)}));
-  $('name').value='';$('inv').value='';type='';demo='';
-  pick($('typeBtns'),null);pick($('demoBtns'),null);$('invWrap').classList.add('hide');$('name').focus();
+  $('first').value='';$('last').value='';$('inv').value='';type='';demo='';
+  pick($('typeBtns'),null);pick($('demoBtns'),null);$('invWrap').classList.add('hide');$('first').focus();
 };
-$('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});
+['first','last'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()}));
 const stateOf=ev=>ev.done?'done':(ev.open?'open':'planned');
 const pubSet=(b,ev,state)=>b.set(db.collection('pub').doc(ev.id),{name:ev.name,date:ev.date||'',time:ev.time||'',state});
 $('done').onclick=()=>{const ev=E(),b=db.batch();b.update(db.collection('events').doc(ev.id),{done:true,open:false});pubSet(b,ev,'closed');guard(b.commit())};
@@ -635,7 +645,8 @@ let dq=Promise.resolve();
 function ask(o){const p=dq.then(()=>showDialog(o));dq=p.then(()=>{},()=>{});return p}
 function showDialog(o){
   return new Promise(res=>{
-    const m=$('modal'),inp=$('mInput'),ok=$('mOk'),cancelVal=o.input?null:false;
+    const m=$('modal'),inp=$('mInput'),inp2=$('mInput2'),ok=$('mOk'),cancelVal=o.input?null:false,val=()=>o.input2?[inp.value,inp2.value]:(o.input?inp.value:true);
+    inp2.classList.toggle('hide',!o.input2);inp2.value=o.value2||'';inp2.placeholder=o.placeholder2||'';
     $('mTitle').textContent=o.title||'Notice';$('mMsg').textContent=o.message||'';
     $('mBox').classList.toggle('dng',!!o.danger);
     inp.classList.toggle('hide',!o.input);inp.value=o.value||'';inp.placeholder=o.placeholder||'';
@@ -643,8 +654,8 @@ function showDialog(o){
     ok.textContent=o.ok||'OK';ok.className=o.danger?'dangerfill':'primary';
     m.classList.remove('hide');
     const done=v=>{m.classList.add('hide');document.removeEventListener('keydown',key);res(v)};
-    const key=e=>{if(e.key==='Escape')done(o.alertOnly?true:cancelVal);else if(e.key==='Enter'&&e.target.tagName!=='BUTTON')done(o.input?inp.value:true)};
-    ok.onclick=()=>done(o.input?inp.value:true);
+    const key=e=>{if(e.key==='Escape')done(o.alertOnly?true:cancelVal);else if(e.key==='Enter'&&e.target.tagName!=='BUTTON')done(val())};
+    ok.onclick=()=>done(val());
     $('mCancel').onclick=()=>done(cancelVal);
     m.onclick=e=>{if(e.target===m)done(o.alertOnly?true:cancelVal)};
     document.addEventListener('keydown',key);
@@ -654,10 +665,13 @@ function showDialog(o){
 window.alert=m=>{const t=String(m);ask({title:/^Could not/.test(t)?'Something went wrong':'Notice',message:t,alertOnly:true})};
 
 // ---- fix a misspelled name ----
+const splitName=n=>{const t=String(n||'').trim().split(/\s+/);return t.length>1?[t.slice(0,-1).join(' '),t[t.length-1]]:[t[0]||'','']};
 function renameAttendee(ev,p){
-  ask({title:'Fix this name',message:'Correct the spelling for this check-in.',input:true,value:p.name,ok:'Save'}).then(v=>{
-    const n=(v||'').trim().slice(0,80);if(!n||n===p.name)return;
-    guard(db.runTransaction(async tx=>{const ref=db.collection('events').doc(ev.id),d=await tx.get(ref);tx.update(ref,{people:(d.data().people||[]).map(x=>x.id===p.id?{...x,name:n}:x)})}));
+  const[f0,l0]=(p.first||p.last)?[p.first||'',p.last||'']:splitName(p.name);
+  ask({title:'Fix this name',message:'Correct the spelling for this check-in.',input:true,placeholder:'First name',value:f0,input2:true,placeholder2:'Last name',value2:l0,ok:'Save'}).then(v=>{
+    if(!v)return;const f=v[0].replace(/\s+/g,' ').trim().slice(0,40),l=v[1].replace(/\s+/g,' ').trim().slice(0,40),n=(f+' '+l).trim();
+    if(!f||n===p.name)return;
+    guard(db.runTransaction(async tx=>{const ref=db.collection('events').doc(ev.id),d=await tx.get(ref);tx.update(ref,{people:(d.data().people||[]).map(x=>x.id===p.id?{...x,name:n,first:f,last:l}:x)})}));
   });
 }
 $('attSearch').oninput=()=>render();
@@ -699,6 +713,67 @@ $('edSave').onclick=()=>{
   editId=null;guard(b.commit());render();
 };
 $('evSearch').oninput=()=>render();$('evFilter').onchange=()=>render();
+
+// ---- members roster ----
+const mkey=n=>normName(n).replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-|-$/g,'').slice(0,120);
+function autoRoster(){
+  if(role!=='admin'||!memLoaded)return;
+  const b=db.batch();let n=0;
+  EVENTS.forEach(e=>(e.people||[]).forEach(p=>{
+    if(p.type!=='Member')return;const k=mkey(p.name);
+    if(!k||MEMB[k]||pendMem[k]||n>=400)return;
+    pendMem[k]=1;n++;const[f,l]=(p.first||p.last)?[p.first||'',p.last||'']:splitName(p.name);
+    b.set(db.collection('members').doc(k),{first:f,last:l,name:p.name,created:Date.now(),auto:true});
+  }));
+  if(n)b.commit().catch(()=>{pendMem={}});
+}
+function memData(){
+  const kinds=[...new Set(EVENTS.map(e=>e.kind).filter(Boolean))],hasSem=EVENTS.some(e=>e.group==='Seminars');
+  if(!mInit&&EVENTS.length){mInit=true;if(kinds.includes('Celebration Service'))mKind='Celebration Service'}
+  if(document.activeElement!==$('mKind')){$('mKind').innerHTML='<option value="">All event types</option>'+(hasSem?'<option value="group:Seminars">All seminars</option>':'')+kinds.map(k=>'<option value="'+esc(k)+'">'+esc(k)+'</option>').join('');$('mKind').value=(kinds.includes(mKind)||(hasSem&&mKind==='group:Seminars'))?mKind:''}
+  const set=EVENTS.filter(e=>(e.people||[]).length>0&&(!mKind||e.kind===mKind||mKind==='group:'+(e.group||'x')))
+    .sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''))||(a.created||0)-(b.created||0)).slice(-(+$('mN').value||8));
+  const sets=set.map(e=>new Set(e.people.map(p=>mkey(p.name))));
+  const rows=Object.entries(MEMB).filter(([k,m])=>!m.hidden).map(([k,m])=>{
+    const marks=sets.map(s=>s.has(k)),att=marks.filter(Boolean).length;
+    let streak=0,missed=0;
+    for(let i=marks.length-1;i>=0&&marks[i];i--)streak++;
+    for(let i=marks.length-1;i>=0&&!marks[i];i--)missed++;
+    const li=marks.lastIndexOf(true);
+    return{k,name:m.name||((m.first||'')+' '+(m.last||'')).trim(),marks,att,streak,missed,last:li>=0?set[li].date:''};
+  });
+  return{set,rows};
+}
+function renderMem(){
+  const{set,rows}=memData(),n=set.length,q=($('mSearch').value||'').toLowerCase();
+  const list=rows.filter(r=>!q||r.name.toLowerCase().includes(q));
+  const fu=r=>r.att>0&&r.missed>=2?r.missed:0,byName=(a,b)=>a.name.localeCompare(b.name);
+  const S={name:byName,most:(a,b)=>b.att-a.att||byName(a,b),follow:(a,b)=>fu(b)-fu(a)||byName(a,b)};
+  list.sort(S[$('mSort').value]||byName);
+  const perfect=rows.filter(r=>n&&r.att===n).length,fol=rows.filter(r=>fu(r)).length,latest=rows.filter(r=>n&&r.marks[n-1]).length;
+  const card=(v,l,sub)=>'<div class="card"><b'+dn(v)+'>'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
+  $('mCards').innerHTML=card(rows.length,'Saved members','')+card(latest,'Came to the latest',rows.length?Math.round(latest/rows.length*100)+'% of members':'')+card(perfect,'Perfect attendance',n?'all '+n+' events':'')+card(fol,'Missed the last 2+','came before');
+  animateNums($('mCards'));
+  $('mTable').innerHTML='<tr><th>Member</th>'+set.map(e=>'<th class="n" title="'+esc(e.name+' '+(e.date||''))+'">'+esc((e.date||'').slice(5)||'?')+'</th>').join('')+'<th class="n">Attended</th><th class="n">In a row</th><th class="noprint"></th></tr>'
+    +(list.length?list.map(r=>'<tr><td>'+esc(r.name)+'</td>'+r.marks.map(m=>m?'<td class="n" style="color:var(--green);font-weight:700">\u2713</td>':'<td class="n" style="opacity:.35">\u2013</td>').join('')+'<td class="n"><b>'+r.att+'</b>/'+n+'</td><td class="n">'+(r.streak?'<b>'+r.streak+'</b> in a row':(fu(r)?'<span class="tag st-planned">missed '+r.missed+'</span>':'\u2013'))+'</td><td class="noprint"><button class="x" data-k="'+esc(r.k)+'" aria-label="Remove from list" title="Remove from list">\u2715</button></td></tr>').join('')
+      :'<tr><td colspan="'+(n+4)+'" class="msg">'+(rows.length?'No members match.':'No members saved yet. People who check in as Member are saved here automatically, or press + Add member.')+'</td></tr>');
+}
+$('mKind').onchange=e=>{mKind=e.target.value;renderMem()};
+['mN','mSort'].forEach(i=>$(i).onchange=()=>renderMem());$('mSearch').oninput=()=>renderMem();
+$('mTable').onclick=e=>{const b=e.target.closest('button[data-k]');if(!b)return;const k=b.dataset.k,m=MEMB[k];
+  ask({title:'Remove from members?',message:(m?m.name:'This person')+' will be taken off the members list. Their past check-ins stay in the events.',ok:'Remove',danger:true}).then(y=>{if(y)guard(db.collection('members').doc(k).set({hidden:true},{merge:true}))})};
+$('mAdd').onclick=()=>ask({title:'Add a member',message:'Save a member now so you can track their attendance, even before they check in.',input:true,placeholder:'First name',input2:true,placeholder2:'Last name',ok:'Add'}).then(v=>{
+  if(!v)return;const f=v[0].replace(/\s+/g,' ').trim().slice(0,40),l=v[1].replace(/\s+/g,' ').trim().slice(0,40),name=(f+' '+l).trim();
+  if(!f||!l)return alert('Please enter both a first and a last name.');
+  const k=mkey(name);if(MEMB[k]&&!MEMB[k].hidden)return alert('That member is already on the list.');
+  guard(db.collection('members').doc(k).set({first:f,last:l,name,created:Date.now(),hidden:false,auto:false},{merge:true}));
+});
+$('mXlsx').onclick=()=>{
+  if(typeof XLSX==='undefined')return alert('The Excel library could not load. Check your internet connection and try again.');
+  const{set,rows}=memData(),wb=XLSX.utils.book_new();
+  const a=XLSX.utils.aoa_to_sheet([['Member',...set.map(e=>(e.date||'')+' '+e.name),'Attended','Events','Current streak','Missed in a row','Last attended'],...rows.sort((x,y)=>x.name.localeCompare(y.name)).map(r=>[r.name,...r.marks.map(m=>m?'Yes':''),r.att,set.length,r.streak,r.missed,r.last])]);
+  a['!cols']=[{wch:28}];XLSX.utils.book_append_sheet(wb,a,'Member attendance');XLSX.writeFile(wb,'member-attendance.xlsx');
+};
 
 // ---- analytics ----
 const normName=n=>String(n||'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -772,12 +847,12 @@ $('anXlsx').onclick=()=>{
 
 // ---- dashboard ----
 let tab='dash';
-const TITLES={an:'Analytics',dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
+const TITLES={mem:'Members',an:'Analytics',dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function bars(id,items){const max=Math.max(1,...items.map(i=>i.v));$(id).innerHTML=items.length?items.map(i=>'<div class="bar-row"><span class="bl" title="'+esc(i.l)+'">'+esc(i.l)+'</span><span class="bt"><i style="width:'+Math.round(i.v/max*100)+'%"></i></span><b>'+i.v+'</b></div>').join(''):'<div class="msg">No data yet.</div>'}
 function applyTab(){
   $('pageTitle').textContent=TITLES[tab];
-  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');$('tab-an').classList.toggle('hide',tab!=='an');
+  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');$('tab-an').classList.toggle('hide',tab!=='an');$('tab-mem').classList.toggle('hide',tab!=='mem');
   [...$('tabs').children].forEach(b=>b.classList.toggle('act',b.dataset.tab===tab));
 }
 function showTab(t){tab=t;applyTab();render();window.scrollTo(0,0)}
@@ -889,7 +964,7 @@ function renderSaved(){
 function render(){
   const admin=role==='admin';
   $('norole').classList.toggle('hide',!!role);
-  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr','tab-an'].forEach(i=>$(i).classList.add('hide'));return}
+  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr','tab-an','tab-mem'].forEach(i=>$(i).classList.add('hide'));return}
   $('tabs').classList.remove('hide');applyTab();autoLink();
   if(!admin){
     const cur=E();if(cur&&cur.done)curId=null;
@@ -897,7 +972,7 @@ function render(){
     if(!curId&&open.length===1)curId=open[0].id;
   }
   const ev=E();
-  renderSaved();renderDash();if(tab==='qr')renderQr();if(tab==='an')renderAn();
+  renderSaved();renderDash();if(tab==='qr')renderQr();if(tab==='an')renderAn();if(tab==='mem')renderMem();autoRoster();
   if(editId&&!EVENTS.find(x=>x.id===editId))editId=null;
   $('editPanel').classList.toggle('hide',!editId);
   $('setup').classList.toggle('hide',!!ev||!admin||!(creating||!EVENTS.length));$('cancelNew').classList.toggle('hide',!EVENTS.length);$('live').classList.toggle('hide',!ev);
