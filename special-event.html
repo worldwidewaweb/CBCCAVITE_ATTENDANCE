@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="light">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Special event check-in</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -11,7 +12,7 @@
 <style>
 :root{--bg:#f3f5f1;--surface:#fff;--ink:#1d2a26;--muted:#66736e;--line:#d5dcd6;--green:#1f7a55;--greenbg:#dff1e8;--amber:#9a6a0a;--red:#b3402f;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root{--bg:#141a18;--surface:#1d2623;--ink:#e6ede9;--muted:#93a29b;--line:#2f3b37;--green:#5cc79b;--greenbg:#1d3a2e;--amber:#e6bd62;--red:#ee8b7a}}
+
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 "Inter","Segoe UI",system-ui,-apple-system,sans-serif}
 main{max-width:520px;margin:0 auto;padding:24px 16px 64px}
@@ -26,7 +27,7 @@ input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--
 button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:12px 16px}
 button.on{background:var(--green);border-color:var(--green);color:#fff}
 button.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700;width:100%;padding:15px}
-@media (prefers-color-scheme:dark){button.on,button.primary{color:#0e1a15}}
+
 button:disabled{opacity:.6;cursor:default}
 :focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .hide{display:none!important}
@@ -40,24 +41,24 @@ button:disabled{opacity:.6;cursor:default}
 .hero .venue{color:rgba(255,255,255,.9);margin:6px 0 0}
 
 /* ---- Church colors: gold, navy and cream ---- */
-:root{--bg:#faf6ea;--surface:#fff;--ink:#1c1a14;--muted:#6f6a58;--line:#e6dfc8;--green:#8a6400;--greenbg:#fbf0c8;--gold:#e0a800;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#2f5f8f;--bluebg:#e4eef8;--stone:#ece8dc;--stonet:#4b4636;--red:#b3402f}
-@media (prefers-color-scheme:dark){:root{--bg:#14120c;--surface:#201d13;--ink:#f3eee0;--muted:#b3ab92;--line:#3a3524;--green:#f0c53d;--greenbg:#3a3010;--gold:#e8b923;--amber:#e6bd62;--amberbg:#3d3115;--blue:#9cc3ec;--bluebg:#1f3550;--stone:#2c281b;--stonet:#cfc7a8;--red:#ee8b7a}}
+:root{--bg:#faf6ea;--surface:#fff;--ink:#1c1a14;--muted:#6f6a58;--line:#e6dfc8;--green:#946200;--greenbg:#fbf0c8;--gold:#F5B800;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#2f5f8f;--bluebg:#e4eef8;--stone:#ece8dc;--stonet:#4b4636;--red:#b3402f}
+
 button.on,button.primary{background:var(--gold);border-color:var(--gold);color:#1c1a14}
 button.primary:hover{filter:brightness(.95)}
 .hero{background:linear-gradient(135deg,#fff3c4 0%,#ffe08a 60%,var(--accent) 170%);color:#1c1a14}
 .hero h1{color:#1c1a14}.hero .when{color:#4b3f12}.hero .venue{color:#4b3f12}
-.hero .tagline{color:#8a6400;opacity:1;font-weight:700}
-@media (prefers-color-scheme:dark){.hero{background:linear-gradient(135deg,#3a3010 0%,#5a4608 70%,var(--accent) 200%);color:#f3eee0}.hero h1{color:#fff}.hero .when,.hero .venue{color:#f3eee0}.hero .tagline{color:#f0c53d}}
+.hero .tagline{color:#946200;opacity:1;font-weight:700}
+
 
 /* ---- polish ---- */
-body{background:radial-gradient(800px 380px at 90% -10%,rgba(224,168,0,.18),transparent 60%),var(--bg);background-attachment:fixed}
-.panel{border-radius:16px;box-shadow:0 1px 2px rgba(60,40,0,.05),0 10px 26px rgba(60,40,0,.07)}
+body{background:radial-gradient(800px 380px at 90% -10%,rgba(255,199,39,.18),transparent 60%),var(--bg);background-attachment:fixed}
+.panel{border-radius:16px;box-shadow:0 1px 2px rgba(120,90,0,.05),0 10px 26px rgba(120,90,0,.07)}
 button{transition:background .18s,border-color .18s,transform .12s,box-shadow .18s}
 button:active{transform:scale(.97)}
-button.primary{background:linear-gradient(180deg,#efbb1c,#d99f00);border-color:#c99300;box-shadow:0 2px 8px rgba(224,168,0,.35)}
-.choices button.on{transform:scale(1.03);box-shadow:0 6px 16px rgba(224,168,0,.38)}
+button.primary{background:linear-gradient(180deg,#ffd24d,#ffc01f);border-color:#e8a900;box-shadow:0 2px 8px rgba(255,199,39,.35)}
+.choices button.on{transform:scale(1.03);box-shadow:0 6px 16px rgba(255,199,39,.38)}
 input{transition:border-color .15s,box-shadow .15s}
-input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,168,0,.3)}
+input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,199,39,.3)}
 .ok{display:flex;align-items:center;gap:14px;border-radius:16px}
 .ok::before{content:"\2713";flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--gold);color:#1c1a14;font-size:1.5rem}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -68,8 +69,12 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (pointer:coarse){.choices button,button.primary,input{min-height:50px}}
-@media (max-width:600px){#submit{position:sticky;bottom:12px;box-shadow:0 8px 24px rgba(224,168,0,.5)}}
+@media (max-width:600px){#submit{position:sticky;bottom:12px;box-shadow:0 8px 24px rgba(255,199,39,.5)}}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.two>label{min-width:0}
+
+/* ---- bright light theme with sunny yellow ---- */
+:root{color-scheme:light;--bg:#fffdf4;--surface:#fff;--ink:#1f1c12;--muted:#6a6450;--line:#f0e7c6;--gold:#ffc727;--green:#946200;--greenbg:#fff4c2;--amber:#946200;--amberbg:#fff1bf;--red:#c0392b}
+input{background:#fff;border-color:#eadfb4}
 </style>
 </head>
 <body>
@@ -111,7 +116,7 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,
 // ---- Edit these three lines to change how this page looks ----
 const TAGLINE="Welcome!";
 const VENUE="";            // e.g. "CBC Cavite Main Sanctuary"
-const ACCENT="#e0a800";    // gold accent (buttons and banner glow)
+const ACCENT="#FFC727";    // gold accent (buttons and banner glow)
 // --------------------------------------------------------------
 document.documentElement.style.setProperty('--accent',ACCENT);
 document.documentElement.style.setProperty('--gold',ACCENT);
