@@ -60,6 +60,7 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media (pointer:coarse){.choices button,button.primary,input{min-height:50px}}
 @media (max-width:600px){#submit{position:sticky;bottom:12px;box-shadow:0 8px 24px rgba(224,168,0,.5)}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.two>label{min-width:0}
 </style>
 </head>
 <body>
@@ -77,7 +78,7 @@ input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,
 
 <section class="panel hide" id="form">
   <input id="hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;height:0;opacity:0">
-  <label>Name<input id="name" autocomplete="off" placeholder="Full name"></label>
+  <div class="two"><label>First name<input id="first" autocomplete="given-name" placeholder="First name"></label><label>Last name<input id="last" autocomplete="family-name" placeholder="Last name"></label></div>
   <div class="lbl">Member or Visitor?</div>
   <div class="choices" id="typeBtns">
     <button data-v="Member">Member</button><button data-v="Visitor">Visitor</button><button data-v="Regular Visitor">Regular Visitor</button>
@@ -136,12 +137,13 @@ try{
 
 $('typeBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;type=b.dataset.v;pick($('typeBtns'),b);$('invWrap').classList.toggle('hide',type==='Member');if(type==='Member')$('inv').value=''};
 $('demoBtns').onclick=e=>{const b=e.target.closest('button');if(!b)return;demo=b.dataset.v;pick($('demoBtns'),b)};
-$('name').addEventListener('keydown',e=>{if(e.key==='Enter')$('submit').click()});
+['first','last'].forEach(i=>$(i).addEventListener('keydown',e=>{if(e.key==='Enter')$('submit').click()}));
 
 $('submit').onclick=async()=>{
   if(busy||!OPEN||OPEN.state!=='open')return;
-  const n=$('name').value.replace(/\s+/g,' ').trim().slice(0,80);
-  if(!n)return err('Please enter your name.');
+  const f=$('first').value.replace(/\s+/g,' ').trim().slice(0,40),l=$('last').value.replace(/\s+/g,' ').trim().slice(0,40),n=f+' '+l;
+  if(!f){$('first').focus();return err('Please enter your first name.')}
+  if(!l){$('last').focus();return err('Please enter your last name.')}
   if(!type)return err('Please choose Member, Visitor, or Regular Visitor.');
   if(!demo)return err('Please choose Adult, Youth, or Kids.');
   const inv=$('inv').value.trim().slice(0,80);
@@ -150,7 +152,7 @@ $('submit').onclick=async()=>{
   const nk=n.toLowerCase().replace(/\s+/g,' ');let seen=[];try{seen=JSON.parse(localStorage.getItem('cbc-ci-'+eid)||'[]')}catch(e){}
   if(seen.includes(nk)&&dupOK!==nk){dupOK=nk;return err('This name was already checked in from this phone. Press Check in again only if you want to add it again.')}
   err('');busy=true;$('submit').disabled=true;$('submit').textContent='Saving…';
-  const p={id:uid(),name:n,type,inv:type==='Member'?'':inv,demo,t:Date.now()};
+  const p={id:uid(),name:n,first:f,last:l,type,inv:type==='Member'?'':inv,demo,t:Date.now()};
   const ref=db.collection('events').doc(eid),add=()=>ref.update({people:firebase.firestore.FieldValue.arrayUnion(p)});
   try{
     try{await add()}catch(e){await new Promise(r=>setTimeout(r,600));await add()}
@@ -163,8 +165,8 @@ $('submit').onclick=async()=>{
   busy=false;$('submit').disabled=false;$('submit').textContent='Check in';
 };
 $('another').onclick=()=>{
-  $('name').value='';$('inv').value='';type='';demo='';pick($('typeBtns'),null);pick($('demoBtns'),null);$('invWrap').classList.add('hide');
-  $('thanks').classList.add('hide');show();$('name').focus();
+  $('first').value='';$('last').value='';$('inv').value='';type='';demo='';pick($('typeBtns'),null);pick($('demoBtns'),null);$('invWrap').classList.add('hide');
+  $('thanks').classList.add('hide');show();$('first').focus();
 };
 function err(m){$('err').textContent=m}
 </script>
