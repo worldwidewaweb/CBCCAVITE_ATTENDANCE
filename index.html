@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="light">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CBC Cavite Event Attendance</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -15,7 +16,7 @@
 <style>
 :root{--bg:#f3f5f1;--surface:#fff;--ink:#1d2a26;--muted:#66736e;--line:#d5dcd6;--green:#1f7a55;--greenbg:#dff1e8;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#25608f;--bluebg:#dce9f4;--red:#b3402f;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root{--bg:#141a18;--surface:#1d2623;--ink:#e6ede9;--muted:#93a29b;--line:#2f3b37;--green:#5cc79b;--greenbg:#1d3a2e;--amber:#e6bd62;--amberbg:#3d3115;--blue:#7db8e8;--bluebg:#1c3347;--red:#ee8b7a}}
+
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Inter","Segoe UI",system-ui,-apple-system,sans-serif}
 main{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
@@ -31,7 +32,7 @@ input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--
 button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px}
 button.on{background:var(--green);border-color:var(--green);color:#fff}
 button.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
-@media (prefers-color-scheme:dark){button.on,button.primary{color:#0e1a15}}
+
 button.danger{color:var(--red)}
 :focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .hide{display:none!important}
@@ -82,16 +83,16 @@ body.pp .poster .pscan{font:700 2rem "Inter","Segoe UI",system-ui,-apple-system,
 body.pp .poster .purl{font-size:.9rem;margin-top:8px;word-break:break-all}}
 
 /* ---- Church colors: gold, navy and cream ---- */
-:root{--bg:#faf6ea;--surface:#fff;--ink:#1c1a14;--muted:#6f6a58;--line:#e6dfc8;--green:#8a6400;--greenbg:#fbf0c8;--gold:#e0a800;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#2f5f8f;--bluebg:#e4eef8;--stone:#ece8dc;--stonet:#4b4636;--red:#b3402f}
-@media (prefers-color-scheme:dark){:root{--bg:#14120c;--surface:#201d13;--ink:#f3eee0;--muted:#b3ab92;--line:#3a3524;--green:#f0c53d;--greenbg:#3a3010;--gold:#e8b923;--amber:#e6bd62;--amberbg:#3d3115;--blue:#9cc3ec;--bluebg:#1f3550;--stone:#2c281b;--stonet:#cfc7a8;--red:#ee8b7a}}
+:root{--bg:#faf6ea;--surface:#fff;--ink:#1c1a14;--muted:#6f6a58;--line:#e6dfc8;--green:#946200;--greenbg:#fbf0c8;--gold:#F5B800;--amber:#9a6a0a;--amberbg:#f7ecd0;--blue:#2f5f8f;--bluebg:#e4eef8;--stone:#ece8dc;--stonet:#4b4636;--red:#b3402f}
+
 button.on,button.primary{background:var(--gold);border-color:var(--gold);color:#1c1a14}
 button.primary:hover{filter:brightness(.95)}
-.side{background:#fff6d6;color:#3b3216;border:1px solid #efdc9a}
+.side{background:#fffbe8;color:#3b3216;border:1px solid #f3e2a0}
 .sidenav button{color:#6b5a22}
 .sidenav button.act{background:var(--gold);color:#1c1a14}
-.brand{color:#8a6400}
-.user button{background:#fff;border:1px solid #efdc9a;color:#3b3216}
-@media (prefers-color-scheme:dark){.side{background:#2a2410;color:#f3eee0;border-color:#4a3f17}.sidenav button{color:#cfc39a}.sidenav button.act{background:var(--gold);color:#1c1a14}.brand{color:#f0c53d}.user button{background:#201d13;border-color:#4a3f17;color:#f3eee0}}
+.brand{color:#946200}
+.user button{background:#fff;border:1px solid #f3e2a0;color:#3b3216}
+
 .bt i{background:var(--gold)}
 .tag.t-Visitor{background:var(--bluebg);color:var(--blue)}
 .tag.t-Regular{background:var(--stone);color:var(--stonet)}
@@ -112,23 +113,23 @@ button.sm{padding:6px 11px;font-size:.85rem}
 button.dangerfill{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
 
 /* ---- polish: depth, motion and responsiveness ---- */
-body{background:radial-gradient(900px 420px at 88% -8%,rgba(224,168,0,.16),transparent 62%),radial-gradient(700px 380px at -5% 105%,rgba(224,168,0,.09),transparent 60%),var(--bg);background-attachment:fixed}
-.panel{border-radius:14px;box-shadow:0 1px 2px rgba(60,40,0,.05),0 10px 26px rgba(60,40,0,.06);transition:box-shadow .25s}
-@media (hover:hover){.panel:hover{box-shadow:0 2px 4px rgba(60,40,0,.06),0 14px 32px rgba(60,40,0,.11)}}
+body{background:radial-gradient(900px 420px at 88% -8%,rgba(255,199,39,.16),transparent 62%),radial-gradient(700px 380px at -5% 105%,rgba(255,199,39,.09),transparent 60%),var(--bg);background-attachment:fixed}
+.panel{border-radius:14px;box-shadow:0 1px 2px rgba(120,90,0,.05),0 10px 26px rgba(120,90,0,.06);transition:box-shadow .25s}
+@media (hover:hover){.panel:hover{box-shadow:0 2px 4px rgba(120,90,0,.06),0 14px 32px rgba(120,90,0,.11)}}
 .panel>h2{display:flex;align-items:center;gap:8px}.panel>h2::before{content:"";width:4px;height:1.05em;border-radius:3px;background:var(--gold);flex:none}
-.card{border-radius:14px;box-shadow:0 1px 2px rgba(60,40,0,.05),0 8px 20px rgba(60,40,0,.06);transition:transform .2s,box-shadow .2s}
-@media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(60,40,0,.14)}}
+.card{border-radius:14px;box-shadow:0 1px 2px rgba(120,90,0,.05),0 8px 20px rgba(120,90,0,.06);transition:transform .2s,box-shadow .2s}
+@media (hover:hover){.card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(120,90,0,.14)}}
 button{transition:background .18s,border-color .18s,transform .12s,box-shadow .18s,filter .18s}
 button:active{transform:scale(.97)}
-@media (hover:hover){button:hover{border-color:var(--gold)}button.primary:hover{box-shadow:0 6px 16px rgba(224,168,0,.4);transform:translateY(-1px)}}
-button.primary{background:linear-gradient(180deg,#efbb1c,#d99f00);border-color:#c99300;box-shadow:0 2px 6px rgba(224,168,0,.3)}
-.choices button.on{transform:scale(1.02);box-shadow:0 6px 16px rgba(224,168,0,.35)}
-.side{background:linear-gradient(180deg,#fff9e0,#fff1bd)}
+@media (hover:hover){button:hover{border-color:var(--gold)}button.primary:hover{box-shadow:0 6px 16px rgba(255,199,39,.4);transform:translateY(-1px)}}
+button.primary{background:linear-gradient(180deg,#ffd24d,#ffc01f);border-color:#e8a900;box-shadow:0 2px 6px rgba(255,199,39,.3)}
+.choices button.on{transform:scale(1.02);box-shadow:0 6px 16px rgba(255,199,39,.35)}
+.side{background:linear-gradient(180deg,#fffbe8,#fff3c0)}
 .sidenav button{transition:background .18s,color .18s,transform .18s}
-@media (hover:hover){.sidenav button:hover{background:rgba(224,168,0,.2);transform:translateX(3px)}.sidenav button.act:hover{transform:none;background:var(--gold)}}
-.ev{border-radius:10px;padding-left:8px;padding-right:8px;transition:background .15s}.ev:hover{background:rgba(224,168,0,.09)}
+@media (hover:hover){.sidenav button:hover{background:rgba(255,199,39,.2);transform:translateX(3px)}.sidenav button.act:hover{transform:none;background:var(--gold)}}
+.ev{border-radius:10px;padding-left:8px;padding-right:8px;transition:background .15s}.ev:hover{background:rgba(255,199,39,.09)}
 input,select{transition:border-color .15s,box-shadow .15s}
-input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(224,168,0,.28)}
+input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(255,199,39,.28)}
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,24px);background:#1c1a14;color:#fff;padding:10px 20px;border-radius:99px;font-weight:600;font-size:.9rem;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:60;box-shadow:0 10px 30px rgba(0,0,0,.3)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -159,7 +160,7 @@ main{padding:12px 12px 72px}
 .ev .acts button{flex:1 1 auto}.head{flex-wrap:wrap}
 }
 @media (pointer:coarse){button,select,input{min-height:44px}button.sm{min-height:38px}}
-@media (prefers-color-scheme:dark){.side{background:linear-gradient(180deg,#2d2711,#241f0d)}}
+
 
 /* ---- space efficiency and navigation ---- */
 .panel{padding:14px;margin-bottom:12px}.panel>h2{font-size:1.05rem;margin-bottom:10px}
@@ -170,7 +171,7 @@ main{padding:12px 12px 72px}
 .ev .acts{position:relative;width:auto;flex-wrap:nowrap;margin-left:auto}
 .menu{position:absolute;right:0;top:calc(100% + 4px);z-index:25;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.2);padding:6px;display:flex;flex-direction:column;min-width:150px}
 .menu button{border:0;background:none;text-align:left;border-radius:6px;padding:8px 10px;font-size:.9rem}
-.menu button:hover{background:rgba(224,168,0,.15)}.menu button.danger{color:var(--red)}
+.menu button:hover{background:rgba(255,199,39,.15)}.menu button.danger{color:var(--red)}
 .subtabs{display:flex;gap:4px;margin:0 0 12px;border-bottom:1px solid var(--line);overflow-x:auto}
 .subtabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:9px 14px;color:var(--muted);font-weight:600;white-space:nowrap}
 .subtabs button.act{color:var(--green);border-bottom-color:var(--gold)}
@@ -195,6 +196,13 @@ main{padding:12px 12px 72px}
 .banner b{font-weight:700}.banner .row{gap:6px}
 button.x.ed{color:var(--green)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.two>label{min-width:0}
+
+/* ---- bright light theme with sunny yellow ---- */
+:root{color-scheme:light;--bg:#fffdf4;--surface:#fff;--ink:#1f1c12;--muted:#6a6450;--line:#f0e7c6;--gold:#ffc727;--green:#946200;--greenbg:#fff4c2;--amber:#946200;--amberbg:#fff1bf;--blue:#2b6aa3;--bluebg:#e6f0fa;--stone:#f1eddc;--stonet:#4b4636;--red:#c0392b}
+input,select{background:#fff;border-color:#eadfb4}
+.side{background:linear-gradient(180deg,#fffbe8,#fff3c0);border-color:#f3e2a0;color:#3b3216}
+.sidenav button.act,.sidenav button.act:hover{background:var(--gold);color:#1f1c12}
+.modal{background:rgba(70,55,10,.32)}
 </style>
 </head>
 <body>
@@ -234,7 +242,7 @@ button.x.ed{color:var(--green)}
   <div class="head"><div class="row" style="gap:8px;flex:1"><select id="dKind" style="max-width:230px"></select><select id="dRange" style="max-width:170px"><option value="8">Last 8 events</option><option value="12">Last 12 events</option><option value="0">All time</option></select></div><button class="primary" id="dashNew">+ New event</button></div>
   <div class="cards" id="dashCards"></div>
   <div class="panel"><h2>Attendance trend</h2>
-    <div class="legend"><span><i style="background:#e0a800"></i>Members</span><span><i style="background:#2f7fc0"></i>Visitors</span><span><i style="background:#3a9a85"></i>Regular visitors</span></div>
+    <div class="legend"><span><i style="background:#F5B800"></i>Members</span><span><i style="background:#2f7fc0"></i>Visitors</span><span><i style="background:#3a9a85"></i>Regular visitors</span></div>
     <div id="chTrend"></div></div>
   <div class="grid2">
     <div class="panel"><h2>Check-ins by type</h2><div id="chType"></div></div>
@@ -777,7 +785,7 @@ $('mXlsx').onclick=()=>{
 
 // ---- analytics ----
 const normName=n=>String(n||'').toLowerCase().replace(/\s+/g,' ').trim();
-const PAL={Member:'#e0a800',Visitor:'#2f7fc0','Regular Visitor':'#3a9a85',Adult:'#e0a800',Youth:'#d9772b',Kids:'#8a6400'};
+const PAL={Member:'#F5B800',Visitor:'#2f7fc0','Regular Visitor':'#3a9a85',Adult:'#F5B800',Youth:'#d9772b',Kids:'#946200'};
 function donut(id,items){
   const tot=items.reduce((a,i)=>a+i.v,0);
   if(!tot){$(id).innerHTML='<div class="msg">No data yet.</div>';return}
@@ -795,9 +803,9 @@ function lineSvg(rows,avg){
   const W=700,H=230,L=34,B=32,T=14,R=12,n=rows.length,pw=W-L-R,ph=H-T-B,max=Math.max(1,...rows.map(x=>x.v));
   const X=k=>L+(n===1?pw/2:pw*k/(n-1)),Y=v=>T+ph-ph*v/max;let g='';
   for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">'+Math.round(max*k/4)+'</text>'}
-  g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(avg)+'" y2="'+Y(avg)+'" stroke="#8a6400" stroke-dasharray="5 4"/><text x="'+(W-R)+'" y="'+(Y(avg)-5)+'" text-anchor="end" font-size="11" fill="#8a6400">average '+Math.round(avg*10)/10+'</text>';
-  g+='<polyline class="dl" pathLength="1" fill="none" stroke="#e0a800" stroke-width="3" stroke-linejoin="round" points="'+rows.map((x,k)=>X(k)+','+Y(x.v)).join(' ')+'"/>';
-  rows.forEach((x,k)=>{g+='<circle cx="'+X(k)+'" cy="'+Y(x.v)+'" r="4.5" fill="#e0a800" stroke="#fff" stroke-width="1.5"/><text x="'+X(k)+'" y="'+(Y(x.v)-9)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+x.v+'</text>';if(n<=14||k%Math.ceil(n/12)===0)g+='<text x="'+X(k)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.l||'').slice(5)||'?')+'</text>'});
+  g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(avg)+'" y2="'+Y(avg)+'" stroke="#946200" stroke-dasharray="5 4"/><text x="'+(W-R)+'" y="'+(Y(avg)-5)+'" text-anchor="end" font-size="11" fill="#946200">average '+Math.round(avg*10)/10+'</text>';
+  g+='<polyline class="dl" pathLength="1" fill="none" stroke="#F5B800" stroke-width="3" stroke-linejoin="round" points="'+rows.map((x,k)=>X(k)+','+Y(x.v)).join(' ')+'"/>';
+  rows.forEach((x,k)=>{g+='<circle cx="'+X(k)+'" cy="'+Y(x.v)+'" r="4.5" fill="#F5B800" stroke="#fff" stroke-width="1.5"/><text x="'+X(k)+'" y="'+(Y(x.v)-9)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+x.v+'</text>';if(n<=14||k%Math.ceil(n/12)===0)g+='<text x="'+X(k)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.l||'').slice(5)||'?')+'</text>'});
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance over time">'+g+'</svg>';
 }
 function anData(){
@@ -881,7 +889,7 @@ function trendSvg(list){
   for(let k=0;k<=4;k++){const y=T+ph-ph*k/4;g+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(L-6)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="currentColor" opacity=".6">'+Math.round(max*k/4)+'</text>'}
   rows.forEach((x,k)=>{
     const cx=L+step*k+step/2,tot=x.m+x.v+x.r;let y=T+ph;
-    [[x.m,'#e0a800'],[x.v,'#2f7fc0'],[x.r,'#3a9a85']].forEach(([val,col])=>{const h=ph*val/max;y-=h;if(h)g+='<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+h+'" fill="'+col+'" rx="2"/>'});
+    [[x.m,'#F5B800'],[x.v,'#2f7fc0'],[x.r,'#3a9a85']].forEach(([val,col])=>{const h=ph*val/max;y-=h;if(h)g+='<rect x="'+(cx-bw/2)+'" y="'+y+'" width="'+bw+'" height="'+h+'" fill="'+col+'" rx="2"/>'});
     g+='<text x="'+cx+'" y="'+(y-5)+'" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor">'+tot+'</text><text x="'+cx+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".7">'+esc((x.e.date||'').slice(5)||'?')+'</text>';
   });
   return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Attendance per event">'+g+'</svg>';
