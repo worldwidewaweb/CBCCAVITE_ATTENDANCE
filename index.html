@@ -222,6 +222,14 @@ input,select{background:#fff;border-color:#eadfb4}
 [data-theme="dark"] .toast{background:#f3eee0;color:#1c1a14}
 [data-theme="dark"] .panel,[data-theme="dark"] .card{box-shadow:0 1px 2px rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35)}
 [data-theme="dark"] .ev:hover,[data-theme="dark"] .menu button:hover{background:rgba(255,199,39,.12)}
+textarea{font:inherit;color:var(--ink);background:#fff;border:1px solid #eadfb4;border-radius:6px;padding:10px;width:100%;min-height:70px;resize:vertical}
+[data-theme="dark"] textarea{background:var(--bg);border-color:var(--line)}
+.sub{display:block;color:var(--muted);font-size:.8rem}
+.chk{flex-direction:row!important;align-items:center;gap:8px!important;color:var(--ink)!important;font-size:.95rem!important}.chk input{width:auto}
+.vbox{max-width:560px;max-height:92vh;overflow:auto}.vbox p{margin:0}
+.badge{margin-left:auto;background:var(--gold);color:#1c1a14;border-radius:99px;padding:1px 8px;font-size:.72rem;font-weight:700}
+#app.compact .badge,.sidenav .badge.hide{display:none}
+@media (max-width:800px){.badge{display:none}}
 </style>
 </head>
 <body>
@@ -242,6 +250,7 @@ input,select{background:#fff;border-color:#eadfb4}
     <button data-tab="dash" class="act"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Dashboard</button>
     <button data-tab="an"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15v3M12 9v9M17 5v13"/></svg>Analytics</button>
     <button data-tab="mem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Members</button>
+    <button data-tab="vis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Visitors<span class="badge hide" id="visBadge"></span></button>
     <button data-tab="events"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Events</button>
     <button data-tab="reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/></svg>Reports</button>
     <button data-tab="qr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>QR codes</button>
@@ -384,6 +393,11 @@ input,select{background:#fff;border-color:#eadfb4}
   </section>
 </div>
 </div>
+<section class="hide" id="tab-vis">
+  <div class="head"><div class="row" style="gap:8px;flex:1"><select id="vType" style="max-width:170px"><option value="">All visitors</option><option value="Visitor">Visitors</option><option value="Regular Visitor">Regular visitors</option></select><select id="vSaved" style="max-width:160px"><option value="">Salvation: any</option><option value="yes">Saved</option><option value="no">Not saved</option><option value="unsure">Not sure</option><option value="blank">Not recorded</option></select><select id="vCwap" style="max-width:160px"><option value="">CWAP: any</option><option value="yes">CWAPed</option><option value="no">Not yet CWAPed</option></select><input id="vSearch" placeholder="Search visitors" style="max-width:190px"></div><button class="sm" id="vXlsx">Excel</button></div>
+  <div class="cards" id="vCards"></div>
+  <div class="panel"><h2>Visitor follow-up</h2><div class="msg" style="padding-top:0">Everyone who checked in as a Visitor or Regular Visitor. Contact details from check-in appear here automatically.</div><div class="scroll"><table id="vTable"></table></div></div>
+</section>
 <section class="hide" id="tab-mem">
   <div class="head"><div class="row" style="gap:8px;flex:1"><select id="mKind" style="max-width:220px"></select><select id="mN" style="max-width:120px"><option value="4">Last 4</option><option value="8" selected>Last 8</option><option value="12">Last 12</option></select><select id="mSort" style="max-width:190px"><option value="name">Sort: Name</option><option value="most">Sort: Most attended</option><option value="follow">Sort: Needs follow-up</option></select><input id="mSearch" placeholder="Search members" style="max-width:190px"></div><div class="row" style="gap:6px"><button class="sm" id="mXlsx">Excel</button><button class="primary sm" id="mAdd">+ Add member</button></div></div>
   <div class="cards" id="mCards"></div>
@@ -424,6 +438,18 @@ input,select{background:#fff;border-color:#eadfb4}
 </section>
 </div>
 </div>
+<div class="modal hide" id="vModal" role="dialog" aria-modal="true" aria-labelledby="vEditTitle">
+  <div class="mbox vbox">
+    <h3 id="vEditTitle">Visitor card</h3><p id="vSub" style="margin-bottom:10px"></p>
+    <div class="two"><label>Salvation<select id="vSavedSel"><option value="">Not recorded</option><option value="yes">Yes, saved</option><option value="no">Not yet</option><option value="unsure">Not sure</option></select></label><label>Date<input id="vSavedDate" type="date"></label></div>
+    <label>Who shared the gospel / talked with them<input id="vShared" placeholder="Name of the worker or member"></label>
+    <div class="two"><label>Mobile number<input id="vPhone" type="tel" placeholder="09xx xxx xxxx"></label><label>Email<input id="vEmail" type="email" placeholder="name@email.com"></label></div>
+    <label>Facebook name<input id="vFb" placeholder="Name on Facebook"></label>
+    <div class="two"><label class="chk"><input type="checkbox" id="vCwapChk"> CWAPed</label><label>CWAP date<input id="vCwapDate" type="date"></label></div>
+    <label>Notes<textarea id="vNotes" placeholder="Follow-up notes, prayer needs, who visited them..."></textarea></label>
+    <div class="mact"><button id="vCancel">Cancel</button><button class="primary" id="vSave">Save card</button></div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="modal hide" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
   <div class="mbox" id="mBox"><h3 id="mTitle"></h3><p id="mMsg"></p><input id="mInput" class="hide"><input id="mInput2" class="hide" style="margin-top:8px"><div class="mact"><button id="mCancel">Cancel</button><button class="primary" id="mOk">OK</button></div></div>
@@ -455,7 +481,7 @@ const firebaseConfig = {
 const $=id=>document.getElementById(id);
 const TYPES=['Member','Visitor','Regular Visitor'];
 const TEMPLATES=['Celebration Service','Youth LINK','Seminars','Special Events'];  // add or rename event types here
-let unsubMem=null,MEMB={},memLoaded=false,pendMem={},mKind='',mInit=false,creating=false,evSub='att',anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
+let unsubVis=null,VIS={},vKey=null,unsubMem=null,MEMB={},memLoaded=false,pendMem={},mKind='',mInit=false,creating=false,evSub='att',anKind='',anRange='0',editId=null,dashKind='',dashRange='8',serLoaded=false,pendingLink={},unsubSer=null,SER={},role='',tpl='',EVENTS=[],curId=null,type='',demo='',unsub=null,auth,db;
 const tagCls=t=>'t-'+t.split(' ')[0];
 const uid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const E=()=>EVENTS.find(e=>e.id===curId)||null;
@@ -488,13 +514,15 @@ if(auth)auth.onAuthStateChanged(u=>{
   if(unsub){unsub();unsub=null}
   if(unsubSer){unsubSer();unsubSer=null}
   if(unsubMem){unsubMem();unsubMem=null}
-  if(!u){EVENTS=[];curId=null;role='';serLoaded=false;pendingLink={};MEMB={};memLoaded=false;pendMem={};return}
+  if(unsubVis){unsubVis();unsubVis=null}
+  if(!u){EVENTS=[];curId=null;role='';serLoaded=false;pendingLink={};MEMB={};VIS={};memLoaded=false;pendMem={};return}
   $('who').textContent='Signed in as '+u.email;$('pass').value='';
   db.collection('users').doc((u.email||'').toLowerCase()).get().then(d=>{
     const r=d.exists?d.data().role:'';
     role=(r==='admin')?'admin':'';
     $('who').textContent='Signed in as '+u.email+(role?' ('+'Admin'+')':'');
     if(!role){render();return}
+    unsubVis=db.collection('visitors').onSnapshot(sn=>{VIS={};sn.forEach(d=>{VIS[d.id]=d.data()});render()},()=>{});
     unsubMem=db.collection('members').onSnapshot(sn=>{MEMB={};sn.forEach(d=>{MEMB[d.id]=d.data()});memLoaded=true;render()},()=>{});
     unsubSer=db.collection('series').onSnapshot(sn=>{SER={};sn.forEach(d=>{SER[d.id]=d.data()});serLoaded=true;render()},()=>{});
     unsub=db.collection('events').orderBy('created').onSnapshot(
@@ -803,6 +831,64 @@ $('mXlsx').onclick=()=>{
   a['!cols']=[{wch:28}];XLSX.utils.book_append_sheet(wb,a,'Member attendance');XLSX.writeFile(wb,'member-attendance.xlsx');
 };
 
+// ---- visitors follow-up ----
+function visData(){
+  const m={},byDate=[...EVENTS].sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
+  byDate.forEach(e=>(e.people||[]).forEach(p=>{
+    const k=mkey(p.name);if(!k)return;
+    const x=m[k]=m[k]||{k,name:p.name,vis:false,ev:new Set(),first:'',last:'',type:'',lastType:'',inv:'',phone:'',fb:''};
+    x.ev.add(e.id);x.name=p.name;x.lastType=p.type;
+    if(!x.first)x.first=e.date||'';x.last=e.date||x.last;
+    if(p.type!=='Member'){x.vis=true;x.type=p.type;if(p.inv)x.inv=p.inv;if(p.phone)x.phone=p.phone;if(p.fb)x.fb=p.fb}
+  }));
+  return Object.values(m).filter(x=>x.vis).map(x=>{const d=VIS[x.k]||{};return{...x,visits:x.ev.size,phone:d.phone||x.phone,fb:d.fb||x.fb,email:d.email||'',saved:d.saved||'',savedDate:d.savedDate||'',sharedBy:d.sharedBy||'',cwap:!!d.cwap,cwapDate:d.cwapDate||'',notes:d.notes||''}});
+}
+const SAVED_L={yes:'Saved',no:'Not saved',unsure:'Not sure'};
+function renderVis(){
+  const all=visData(),q=($('vSearch').value||'').toLowerCase(),ft=$('vType').value,fs=$('vSaved').value,fc=$('vCwap').value;
+  const list=all.filter(r=>(!ft||r.type===ft)&&(!fs||(fs==='blank'?!r.saved:r.saved===fs))&&(!fc||(fc==='yes')===r.cwap)&&(!q||(r.name+' '+r.phone+' '+r.fb+' '+r.inv+' '+r.sharedBy).toLowerCase().includes(q)))
+    .sort((a,b)=>(a.cwap-b.cwap)||(b.last||'').localeCompare(a.last||'')||a.name.localeCompare(b.name));
+  const card=(v,l,sub)=>'<div class="card"><b'+dn(v)+'>'+v+'</b><span>'+l+'</span><small>'+esc(sub||'')+'</small></div>';
+  const cw=all.filter(r=>r.cwap).length,sv=all.filter(r=>r.saved==='yes').length;
+  $('vCards').innerHTML=card(all.length,'Visitors recorded','')+card(all.filter(r=>r.visits>=2).length,'Came back','2 or more visits')+card(sv,'Saved',all.length-sv+' not recorded or not yet')+card(cw,'CWAPed',all.length-cw+' still to do');
+  animateNums($('vCards'));
+  const tag=(t,c)=>'<span class="tag '+c+'">'+t+'</span>';
+  $('vTable').innerHTML='<tr><th>Name</th><th>Type</th><th>Invited by</th><th class="n">Visits</th><th>Contact</th><th>Salvation</th><th>CWAP</th><th class="noprint"></th></tr>'
+    +(list.length?list.map(r=>'<tr><td><b>'+esc(r.name)+'</b>'+(r.lastType==='Member'?' '+tag('Member now','st-open'):'')+'<span class="sub">last visit '+esc(r.last||'-')+'</span></td><td>'+tag(esc(r.type),'t-'+r.type.split(' ')[0])+'</td><td>'+esc(r.inv||'-')+'</td><td class="n">'+r.visits+'</td><td>'+(r.phone?esc(r.phone):'<span class="msg">no number</span>')+(r.fb?'<span class="sub">FB: '+esc(r.fb)+'</span>':'')+(r.email?'<span class="sub">'+esc(r.email)+'</span>':'')+'</td><td>'+(r.saved?tag(SAVED_L[r.saved],r.saved==='yes'?'st-open':'st-planned'):'<span class="msg">-</span>')+(r.sharedBy?'<span class="sub">shared by '+esc(r.sharedBy)+'</span>':'')+'</td><td>'+(r.cwap?tag('CWAPed','st-open')+'<span class="sub">'+esc(r.cwapDate)+'</span>':tag('Not yet','st-planned'))+'</td><td class="noprint" style="white-space:nowrap"><button class="sm" data-ve="'+esc(r.k)+'">Card</button> <button class="sm" data-vc="'+esc(r.k)+'">'+(r.cwap?'Undo CWAP':'Mark CWAPed')+'</button></td></tr>').join('')
+    :'<tr><td colspan="8" class="msg">'+(all.length?'No visitors match.':'No visitors yet. People who check in as Visitor or Regular Visitor appear here.')+'</td></tr>');
+}
+const today=()=>new Date().toISOString().slice(0,10);
+function vSetDoc(k,data){const r=visData().find(x=>x.k===k);guard(db.collection('visitors').doc(k).set({name:r?r.name:k,...data,updated:Date.now()},{merge:true}))}
+function closeVCard(){vKey=null;$('vModal').classList.add('hide')}
+function openVisitorCard(k){
+  const r=visData().find(x=>x.k===k);if(!r)return alert('This person has no visitor check-in yet.');
+  vKey=k;$('vEditTitle').textContent=r.name;
+  $('vSub').textContent=[r.type,r.inv?'invited by '+r.inv:'',r.visits+' visit'+(r.visits>1?'s':''),'last visit '+(r.last||'-')].filter(Boolean).join(' \u00b7 ');
+  $('vSavedSel').value=r.saved;$('vSavedDate').value=r.savedDate;$('vShared').value=r.sharedBy;$('vPhone').value=r.phone;$('vEmail').value=r.email;$('vFb').value=r.fb;
+  $('vCwapChk').checked=r.cwap;$('vCwapDate').value=r.cwapDate;$('vNotes').value=r.notes;
+  $('vModal').classList.remove('hide');setTimeout(()=>$('vShared').focus(),0);
+}
+$('vTable').onclick=e=>{
+  const ed=e.target.closest('button[data-ve]'),cw=e.target.closest('button[data-vc]');
+  if(cw){const r=visData().find(x=>x.k===cw.dataset.vc);if(r)vSetDoc(r.k,{cwap:!r.cwap,cwapDate:r.cwap?'':today()})}
+  if(ed)openVisitorCard(ed.dataset.ve);
+};
+$('vCancel').onclick=closeVCard;$('vModal').onclick=e=>{if(e.target===$('vModal'))closeVCard()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('vModal').classList.contains('hide'))closeVCard()});
+$('vSave').onclick=()=>{
+  if(!vKey)return;const chk=$('vCwapChk').checked,sv=$('vSavedSel').value;
+  vSetDoc(vKey,{saved:sv,savedDate:sv==='yes'?($('vSavedDate').value||today()):'',sharedBy:$('vShared').value.trim().slice(0,80),phone:$('vPhone').value.trim().slice(0,30),email:$('vEmail').value.trim().slice(0,80),fb:$('vFb').value.trim().slice(0,80),cwap:chk,cwapDate:chk?($('vCwapDate').value||today()):'',notes:$('vNotes').value.trim().slice(0,1000)});
+  closeVCard();
+};
+function updateVisBadge(){const n=visData().filter(r=>!r.saved).length;$('visBadge').textContent=n;$('visBadge').classList.toggle('hide',!n)}
+['vType','vSaved','vCwap'].forEach(i=>$(i).onchange=()=>renderVis());$('vSearch').oninput=()=>renderVis();
+$('vXlsx').onclick=()=>{
+  if(typeof XLSX==='undefined')return alert('The Excel library could not load. Check your internet connection and try again.');
+  const wb=XLSX.utils.book_new(),a=XLSX.utils.aoa_to_sheet([['Name','Type','Invited by','Visits','First visit','Last visit','Mobile','Email','Facebook','Salvation','Salvation date','Who shared','CWAPed','CWAP date','Notes'],...visData().sort((x,y)=>x.name.localeCompare(y.name)).map(r=>[r.name,r.type,r.inv,r.visits,r.first,r.last,r.phone,r.email,r.fb,SAVED_L[r.saved]||'',r.savedDate,r.sharedBy,r.cwap?'Yes':'No',r.cwapDate,r.notes])]);
+  a['!cols']=[{wch:26},{wch:16},{wch:20},{wch:7},{wch:11},{wch:11},{wch:15},{wch:24},{wch:22},{wch:10},{wch:12},{wch:20},{wch:8},{wch:11},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,a,'Visitors');XLSX.writeFile(wb,'visitors.xlsx');
+};
+
 // ---- analytics ----
 const normName=n=>String(n||'').toLowerCase().replace(/\s+/g,' ').trim();
 const PAL={Member:'#F5B800',Visitor:'#2f7fc0','Regular Visitor':'#3a9a85',Adult:'#F5B800',Youth:'#d9772b',Kids:'#C58B00'};
@@ -913,12 +999,12 @@ $('anXlsx').onclick=()=>{
 
 // ---- dashboard ----
 let tab='dash';
-const TITLES={mem:'Members',an:'Analytics',dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
+const TITLES={vis:'Visitors',mem:'Members',an:'Analytics',dash:'Dashboard',events:'Events',reports:'Reports',qr:'QR codes'};
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function bars(id,items){const max=Math.max(1,...items.map(i=>i.v));$(id).innerHTML=items.length?items.map(i=>'<div class="bar-row"><span class="bl" title="'+esc(i.l)+'">'+esc(i.l)+'</span><span class="bt"><i style="width:'+Math.round(i.v/max*100)+'%'+(i.c?';background:'+i.c:'')+'"></i></span><b>'+i.v+'</b></div>').join(''):'<div class="msg">No data yet.</div>'}
 function applyTab(){
   $('pageTitle').textContent=TITLES[tab];
-  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');$('tab-an').classList.toggle('hide',tab!=='an');$('tab-mem').classList.toggle('hide',tab!=='mem');
+  $('tab-dash').classList.toggle('hide',tab!=='dash');$('tab-events').classList.toggle('hide',tab!=='events');$('tab-reports').classList.toggle('hide',tab!=='reports');$('tab-qr').classList.toggle('hide',tab!=='qr');$('tab-an').classList.toggle('hide',tab!=='an');$('tab-mem').classList.toggle('hide',tab!=='mem');$('tab-vis').classList.toggle('hide',tab!=='vis');
   [...$('tabs').children].forEach(b=>b.classList.toggle('act',b.dataset.tab===tab));
 }
 function showTab(t){tab=t;applyTab();render();window.scrollTo(0,0)}
@@ -1040,7 +1126,7 @@ function renderSaved(){
 function render(){
   const admin=role==='admin';
   $('norole').classList.toggle('hide',!!role);
-  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr','tab-an','tab-mem'].forEach(i=>$(i).classList.add('hide'));return}
+  if(!role){['setup','savedPanel','live','tabs','tab-dash','tab-events','tab-reports','tab-qr','tab-an','tab-mem','tab-vis'].forEach(i=>$(i).classList.add('hide'));return}
   $('tabs').classList.remove('hide');applyTab();autoLink();
   if(!admin){
     const cur=E();if(cur&&cur.done)curId=null;
@@ -1048,7 +1134,7 @@ function render(){
     if(!curId&&open.length===1)curId=open[0].id;
   }
   const ev=E();
-  renderSaved();renderDash();if(tab==='qr')renderQr();if(tab==='an')renderAn();if(tab==='mem')renderMem();autoRoster();
+  renderSaved();renderDash();if(tab==='qr')renderQr();if(tab==='an')renderAn();if(tab==='mem')renderMem();if(tab==='vis')renderVis();updateVisBadge();autoRoster();
   if(editId&&!EVENTS.find(x=>x.id===editId))editId=null;
   $('editPanel').classList.toggle('hide',!editId);
   $('setup').classList.toggle('hide',!!ev||!admin||!(creating||!EVENTS.length));$('cancelNew').classList.toggle('hide',!EVENTS.length);$('live').classList.toggle('hide',!ev);
@@ -1087,6 +1173,7 @@ function render(){
     const tt=document.createElement('td');const sp=document.createElement('span');sp.className='tag '+tagCls(p.type);sp.textContent=p.type;tt.append(sp);tr.append(tt);
     tr.append(c(p.inv||'-'),c(p.demo));
     const xd=document.createElement('td');xd.className='noprint';
+    if(p.type!=='Member'){const vc=document.createElement('button');vc.className='sm';vc.textContent='Card';vc.title='Visitor card: salvation, who shared, contact, Facebook';vc.onclick=()=>openVisitorCard(mkey(p.name));xd.append(vc)}
     const ed=document.createElement('button');ed.className='x ed';ed.textContent='\u270e';ed.setAttribute('aria-label','Rename '+p.name);ed.title='Fix the name';ed.onclick=()=>renameAttendee(ev,p);xd.append(ed);
     if(!ev.done){const b=document.createElement('button');b.className='x';b.textContent='✕';b.setAttribute('aria-label','Remove '+p.name);
       b.onclick=()=>guard(db.collection('events').doc(ev.id).update({people:firebase.firestore.FieldValue.arrayRemove(p)}));xd.append(b)}
